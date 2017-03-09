@@ -165,6 +165,7 @@ Missions = {'Attack': 1,
             'Destroy': 9,
             'Expedition': 15}
 
+
 Formules = {
         'batiments' : {
             'metal_mine': { 
@@ -236,3 +237,10 @@ Formules = {
             },
         }
     }
+
+PlanetType = {'Planet': 1,
+            'DebriField': 2,
+            'Moon': 3
+
+
+}
