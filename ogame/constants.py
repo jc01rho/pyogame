@@ -198,6 +198,79 @@ Missions = {'Attack': 1,
             'Destroy': 9,
             'Expedition': 15}
 
+
+Formules = {
+        'batiments' : {
+            'metal_mine': { 
+                'cout': {
+                    'Metal':[60,1.5], 'Crystal':[15,1.5], 'Deuterium':[0,0]
+                },
+                'production': [30,1.1],
+                'consommation': [10,1.1],
+            },
+            'crystal_mine':{
+                'cout': {
+                    'Metal':[48, 1.6], 'Crystal':[24,1.6], 'Deuterium':[0,0]
+                    },
+                'production': [20,1.1],
+                'consommation': [10,1.1],
+            },
+            'deuterium_synthesizer':{
+                'cout': {
+                    'Metal':[225,1.5], 'Crystal':[75,1.5], 'Deuterium':[0,0]
+                    },
+                'production': [10,1.1],
+                'consommation': [20,1.1]
+            },
+        },
+        'energy' : {
+            'solar_plant':{
+                'cout': {
+                    'Metal':[75,1.5], 'Crystal':[30,1.5], 'Deuterium':[0,0]
+                    },
+                'production': [20,1.1],
+                'consommation': [0,0]
+            },
+            'solar_satellite':{
+                'cout': {
+                    'Metal':[0,0], 'Crystal':[0,0], 'Deuterieum':[0,0]
+                    },
+                'production': [],
+                'consommation': [0,0]
+            },
+            'fusion_reactor':{
+                'cout': {
+                    'Metal':[0,0], 'Crystal':[0,0], 'Deuterieum':[0,0]
+                    },
+                'production': [],
+                'consommation': [10,1.1]
+            },
+        },
+        'storage' :{
+            'metal_storage':{
+                'cout': {
+                    'Metal':[0,0], 'Crystal':[0,0], 'Deuterieum':[0,0]
+                    },
+                'capacite': [1.6],
+                'consommation': [0,0]
+            },
+            'crystal_storage':{
+                'cout': {
+                    'Metal':[0,0], 'Crystal':[0,0], 'Deuterieum':[0,0]
+                    },
+                'capacite': [1.6],
+                'consommation': [0,0]
+            },
+            'deuterium_tank':{
+                'cout': {
+                    'Metal':[0,0], 'Crystal':[0,0], 'Deuterieum':[0,0]
+                    },
+                'capacite': [1.6],
+                'consommation': [0,0]
+            },
+        }
+    }
+
 PlanetType = {'Planet': 1,
             'DebriField': 2,
             'Moon': 3
