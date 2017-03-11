@@ -578,6 +578,7 @@ class OGame(object):
         eventsDup = filter(lambda x: 'partnerInfo' not in x.get('class', []), events)
         events = soup.findAll('tr', {'class': 'allianceAttack'})
         events += eventsDup
+        # unsupported operand type(s) for +=: 'filter' and 'ResultSet'
         attacks = []
         for event in events:
             mission_type = int(event['data-mission-type'])
@@ -640,6 +641,8 @@ class OGame(object):
             attack.update({'arrival_time': arrival_time})
             #todo Mn replace 제대로
             attack.update({'detailsFleet': int(event.find('td', {'class': 'detailsFleet'}).text.replace(".","").replace("Mn","").strip())})
+
+            attack.update({'detailsFleet': int(event.find('td', {'class': 'detailsFleet'}).text.strip())})
 
             if mission_type == 1:
                 attacker_id = event.find('a', {'class': 'sendMail'})['data-playerid']
