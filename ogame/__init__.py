@@ -602,8 +602,6 @@ class OGame(object):
             #todo Mn replace 제대로
             attack.update({'detailsFleet': int(event.find('td', {'class': 'detailsFleet'}).text.replace(".","").replace("Mn","").strip())})
 
-            attack.update({'detailsFleet': int(event.find('td', {'class': 'detailsFleet'}).text.strip())})
-
             if mission_type == 1:
                 attacker_id = event.find('a', {'class': 'sendMail'})['data-playerid']
                 attack.update({'attacker_id': int(attacker_id)})
