@@ -19,6 +19,7 @@ Buildings = {'MetalMine': 1,
              'UndergroundCrystalDen': 26,
              'SeabedDeuteriumDen': 27,
 
+
              'metal_mine': 1,
              'deuterium_synthesizer': 3,
              'solar_plant': 4,
@@ -48,6 +49,7 @@ Facilities = {'AllianceDepot': 34,
               'NaniteFactory': 15,
               'Terraformer': 33,
               'SpaceDock': 36,
+
               
               'alliance_depot': 34,
               'robotics_factory': 14,
@@ -61,6 +63,7 @@ Facilities = {'AllianceDepot': 34,
 
               # FR
               'Usinederobots': 14}
+
 
 Defense = {'RocketLauncher': 401,
            'LightLaser': 402,
@@ -88,6 +91,7 @@ Ships = {'SmallCargo': 202,
          'SolarSatellite': 212,
          'Destroyer': 213,
          'Deathstar': 214,
+
          'Battlecruiser': 215
          }
 
@@ -112,6 +116,7 @@ Research = {'EspionageTechnology': 106,
             'IntergalacticResearchNetwork': 123,
             'Astrophysics': 124,
             'GravitonTechnology': 199,
+
             
             'energy_technology': 113,
             'laser_technology': 120,
@@ -165,10 +170,84 @@ Missions = {'Attack': 1,
             'DeployToPlanet': 4}
             'Expedition': 15}
 
+
 PlanetType = {'Planet': 1,
             'DebriField': 2,
             'Moon': 3
 
 
 }
+
+
+Formules = {
+        'batiments' : {
+            'metal_mine': { 
+                'cout': {
+                    'Metal':[60,1.5], 'Crystal':[15,1.5], 'Deuterium':[0,0]
+                },
+                'production': [30,1.1],
+                'consommation': [10,1.1],
+            },
+            'crystal_mine':{
+                'cout': {
+                    'Metal':[48, 1.6], 'Crystal':[24,1.6], 'Deuterium':[0,0]
+                    },
+                'production': [20,1.1],
+                'consommation': [10,1.1],
+            },
+            'deuterium_synthesizer':{
+                'cout': {
+                    'Metal':[225,1.5], 'Crystal':[75,1.5], 'Deuterium':[0,0]
+                    },
+                'production': [10,1.1],
+                'consommation': [20,1.1]
+            },
+        },
+        'energy' : {
+            'solar_plant':{
+                'cout': {
+                    'Metal':[75,1.5], 'Crystal':[30,1.5], 'Deuterium':[0,0]
+                    },
+                'production': [20,1.1],
+                'consommation': [0,0]
+            },
+            'solar_satellite':{
+                'cout': {
+                    'Metal':[0,0], 'Crystal':[0,0], 'Deuterieum':[0,0]
+                    },
+                'production': [],
+                'consommation': [0,0]
+            },
+            'fusion_reactor':{
+                'cout': {
+                    'Metal':[0,0], 'Crystal':[0,0], 'Deuterieum':[0,0]
+                    },
+                'production': [],
+                'consommation': [10,1.1]
+            },
+        },
+        'storage' :{
+            'metal_storage':{
+                'cout': {
+                    'Metal':[0,0], 'Crystal':[0,0], 'Deuterieum':[0,0]
+                    },
+                'capacite': [1.6],
+                'consommation': [0,0]
+            },
+            'crystal_storage':{
+                'cout': {
+                    'Metal':[0,0], 'Crystal':[0,0], 'Deuterieum':[0,0]
+                    },
+                'capacite': [1.6],
+                'consommation': [0,0]
+            },
+            'deuterium_tank':{
+                'cout': {
+                    'Metal':[0,0], 'Crystal':[0,0], 'Deuterieum':[0,0]
+                    },
+                'capacite': [1.6],
+                'consommation': [0,0]
+            },
+        }
+    }
 
