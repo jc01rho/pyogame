@@ -120,6 +120,12 @@ def get_code(name):
     print('Couldn\'t find code for %s' % name)
     return None
 
+def building_cost(lvl, type):
+    cost = {}
+    cost['metal'] = int(math.floor(constants.Formules[type]['Metal'][0]*constants.Formules[type]['Metal'][1]**(lvl-1)))
+    cost['crystal'] = int(math.floor(constants.Formules[type]['Crystal'][0]*constants.Formules[type]['Crystal'][1]**(lvl-1)))
+    cost['deuterium'] = int(math.floor(constants.Formules[type]['Deuterium'][0]*constants.Formules[type]['Deuterium'][1]**(lvl-1)))
+    return cost
 
 @for_all_methods(sandbox_decorator)
 class OGame(object):
@@ -767,7 +773,7 @@ class OGame(object):
             is_idle = box.find('td', {'class': 'idle'}) is not None
             res[names[idx]] = []
             if not is_idle:
-                name = box.find('th').text
+                name = box.find('th').text.encode('utf8')
                 short_name = ''.join(name.split())
                 code = get_code(short_name)
                 desc = box.find('td', {'class': 'desc'}).text
@@ -825,179 +831,10 @@ class OGame(object):
             galaxy_view = obj['galaxy']
         except ValueError:
             raise NOT_LOGGED
-        return galaxy_view
+        return obj
 
-    def find_empty_slots(self, html):
-        soup = BeautifulSoup(html, 'lxml')
-        empty_rows = soup.find_all('tr', {'class': 'empty_filter'})
-        empty_positions = []
-        if empty_rows is None:
-            return empty_positions
-        for empty_row in empty_rows:
-            empty_positions.append(empty_row.find('td', {'position'}).text)
-
-        return empty_positions
-
-    def get_spy_reports(self):
-        headers = {'X-Requested-With': 'XMLHttpRequest'}
-        payload = {'tab': 20,
-                   'ajax': 1}
-        url = self.get_url('messages', payload)
-        res = self.session.get(url).content.decode('utf8')
-        return res
-
-    def delete_spy_reports(self, message_id):
-        headers = {'X-Requested-With': 'XMLHttpRequest'}
-        payload = {'messageId': message_id, 'action': 103, 'ajax': 1}
-        url = self.get_url('messages')
-        res = self.session.post(url, data=payload, headers=headers).content.decode('utf8')
-        return res
-
-    def get_flying_fleets(self):
-        url = self.get_url('movement')
-        res = self.session.get(url).content
-        soup = BeautifulSoup(res, 'lxml')
-        current_fleets = soup.find('span', {
-            'class': 'current'})
-        max_fleets = soup.find('span', {
-            'class': 'all'})
-        if current_fleets is None:
-            text_fleets = soup.find('span', {'class': 'tooltip advice'}).contents[1]
-            current_fleets = int(text_fleets.split('/')[0])
-            max_fleets = int(text_fleets.split('/')[1])
-            available_fleets = max_fleets - current_fleets
-            fleet_dict = {'current_fleets': current_fleets, 'max_fleets': max_fleets,
-                          'available_fleets': available_fleets}
-            return fleet_dict
-        current_fleets = int(current_fleets.contents[0])
-        max_fleets = int(max_fleets.contents[0])
-        available_fleets = max_fleets - current_fleets
-        fleet_dict = {'current_fleets': current_fleets, 'max_fleets': max_fleets, 'available_fleets': available_fleets}
-        return fleet_dict
-
-    def jumpgate_execute(self):
-        res = self.session.get(self.get_url('jumpgate_execute')).content
-        headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-        return True
-
-    def send_minifleet_spy(self, where, ship_count):
-        html_for_token = self.session.get(self.get_url('galaxy')).content
-        token = self.get_minifleet_token(html_for_token)
-
-        headers = {'X-Requested-With': 'XMLHttpRequest'}
-        payload = {'mission': 6,
-                   'galaxy': where.get('galaxy'),
-                   'system': where.get('system'),
-                   'position': where.get('position'),
-                   'type': 1,
-                   'shipCount': ship_count,
-                   'token': token[0],
-                   'speed': 10
-                   }
-
-        res = self.session.post(self.get_url('minifleet'), params={'ajax': 1}, headers=headers, data=payload).content
-        try:
-            json_response = json.loads(res)
-        except ValueError:
-            from send_message import send_message
-            send_message(
-                'No se pudo espiar a {}:{}:{}'.format(where.get('galaxy'), where.get('system'), where.get('position')))
-            return None
-        res_dict = json_response.get('response').get('success')
-        if res_dict:
-            return 'Sended spy probes'
-        return None
-
-    def get_minifleet_token(self, html):
-        token = None
-        moon_soup = BeautifulSoup(html, 'html.parser')
-        data = moon_soup.find_all('script', {'type': 'text/javascript'})
-        parameter = 'miniFleetToken'
-        for d in data:
-            d = d.text
-            if 'var miniFleetToken=' in d:
-                regex_string = 'var {parameter}="(.*?)"'.format(parameter=parameter)
-                token = re.findall(regex_string, d)
-
-        return token
-
-    def check_new_messages(self, html):
-        total_messages = 0
-        soup = BeautifulSoup(html, 'lxml')
-        messages = soup.find('span', {'class': 'totalChatMessages'})
-        if messages is not None:
-            total_messages = int(messages.attrs['data-new-messages'])
-
-        return total_messages
-
-    def get_new_messages(self):
-        msg_list = []
-        html = self.session.get(self.get_url('chat')).content
-        soup = BeautifulSoup(html, 'lxml')
-        new_chats = soup.find('ul', {'id': 'chatMsgList'}).findAll('li', {'class': 'msg_new'})
-        if new_chats is None:
-            return None
-        for chat in new_chats:
-            message = ''
-            player = ''
-            try:
-                message = chat.find('span', {'class': 'msg_content'}).contents[0]
-                player = chat.find('span', {'class': 'msg_title'}).contents[2]
-            except UnicodeEncodeError:
-                print('Error getting messages')
-            msg = {'message': message.encode('utf-8'), 'player': player.encode('utf-8')}
-            msg_list.append(msg)
-
-        return msg_list
-
-    def can_build(self, planet_id, building, building_type):
-        building_url = building_type
-        if building_type == 'supply':
-            building_url = 'resources'
-
-        html = self.session.get(self.get_url(building_url, {'cp': planet_id})).content
-        soup = BeautifulSoup(html, 'lxml')
-        is_free = soup.find('div', {'class': '{}{}'.format(building_type, building)}).find('a', {'class': 'fastBuild'})
-        if is_free is not None:
-            return True
-        else:
-            return False
-
-    def can_build_research(self, building):
-        html = self.session.get(self.get_url('research')).content
-        soup = BeautifulSoup(html, 'lxml')
-        is_free = soup.find('div', {'class': 'research{}'.format(building)}).find('a', {'class': 'fastBuild'})
-        if is_free is not None:
-            return True
-        else:
-            return False
-
-    def alliance_apply(self, alliance_id, message):
-        url = self.get_url('allianceWriteApplication', {'action': 19})
-        payload = {'text': message,
-                   'appliedAllyId': alliance_id}
-        headers = {'X-Requested-With': 'XMLHttpRequest'}
-        res = self.session.post(url, headers=headers, data=payload).content
-
-    def get_ip(self):
-        res = self.session.get('http://ifconfig.me/ip')
-        return 'ip session: {}'.format(res.text.strip())
-
-    def delete_planet(self, planet_id):
-        html = self.session.get(self.get_url('planetlayer')).content
-        soup = BeautifulSoup(html, 'lxml')
-        form = soup.find('form', {'id': 'planetMaintenanceDelete'})
-        abandon = form.find('input', {'name': 'abandon'}).get('value')
-        token = form.find('input', {'name': 'token'}).get('value')
-        payload = {'abandon': abandon,
-                   'token': token,
-                   'password': self.password}
-        headers = {'X-Requested-With': 'XMLHttpRequest'}
-        check_password = self.session.post(self.get_url('checkPassword'), headers=headers, data=payload).content
-        jo = json.loads(check_password)
-        new_token = jo['newToken']
-        delete_payload = {'abandon': abandon,
-                          'token': new_token,
-                          'password': self.password}
-
-        delete_action = self.session.post(self.get_url('planetGiveup'), headers=headers, data=delete_payload).content
+def Consommation(batiment, lvl):
+    """ Retourne la consommation du batiment du level lvl + 1 """
+    energieLvl = Formules['batiments'][batiment]['consommation'][0] * lvl * (Formules['batiments'][batiment]['consommation'][1]**lvl)
+    energieNextLvl = Formules['batiments'][batiment]['consommation'][0] * (lvl+1) * (Formules['batiments'][batiment]['consommation'][1]**(lvl+1))
+    return math.floor(energieNextLvl - energieLvl)
