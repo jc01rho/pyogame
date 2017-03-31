@@ -19,17 +19,15 @@ Buildings = {'MetalMine': 1,
              'UndergroundCrystalDen': 26,
              'SeabedDeuteriumDen': 27,
 
-
-             'metal_mine': 1,
-             'deuterium_synthesizer': 3,
-             'solar_plant': 4,
-             # 'solar_satellite': 212,
-             'deuterium_tank': 24,
-             'crystal_mine': 2,
-             'fusion_reactor': 12,
-             'metal_storage': 22,
-             'crystal_storage': 23
-             }
+             # NL
+             'Metaalmijn': 1,
+             'Kristalmijn': 2,
+             'Deuteriumfabriek': 3,
+             'Zonne-energiecentrale': 4,
+             'Fusiecentrale': 12,
+             'Metaalopslag': 22,
+             'Kristalopslag': 23,
+             'Deuteriumtank': 24,
 
              'Minedemétal': 1,
              'Minedecristal': 2,
@@ -50,17 +48,18 @@ Facilities = {'AllianceDepot': 34,
               'Terraformer': 33,
               'SpaceDock': 36,
 
-
+              # NL
+              'Alliantiehanger': 34,
+              'Robotfabriek': 14,
+              'Werf': 21,
+              'Onderzoekslab': 31,
+              'Raketsilo': 44,
+              'Nanorobotfabriek': 15,
+              'Terravormer': 33,
+              'Ruimtewerf': 36,
               
-              'alliance_depot': 34,
-              'robotics_factory': 14,
-              'shipyard': 21,
-              'research_lab': 31,
-              'missile_silo': 44,
-              'nanite_factory': 15,
-              'terraformer': 33,
-              'space_dock': 36
-              }
+              # FR
+	      'Usinederobots': 14}
 
               # FR
               'Usinederobots': 14}
@@ -91,14 +90,26 @@ Ships = {'SmallCargo': 202,
          'SolarSatellite': 212,
          'Destroyer': 213,
          'Deathstar': 214,
+         'Battlecruiser': 215,
 
-         'Battlecruiser': 215
-         }
+         # NL
+         'Kleinvrachtschip': 202,
+         'Grootvrachtschip': 203,
+         'Lichtgevechtsschip': 204,
+         'Zwaargevechtsschip': 205,
+         'Kruiser': 206,
+         'Slagschip': 207,
+         'Kolonisatiesschip': 208,
+         'Recycler': 209,
+         'Spionagesonde': 210,
+         'Bommenwerper': 211,
+         'Zonne-energiesatelliet': 212,
+         'Vernietiger': 213,
+         'Sterdesdoods': 214,
+         'Interceptor': 215,
 
          # FR
-         'Grandtransporteur': 203,
-         'Vaisseaudecolonisation': 208,
-         'Satellitesolaire': 212}
+         'Grandtransporteur': 203}
 
 Research = {'EspionageTechnology': 106,
             'ComputerTechnology': 108,
@@ -117,24 +128,28 @@ Research = {'EspionageTechnology': 106,
             'Astrophysics': 124,
             'GravitonTechnology': 199,
 
-            
-            'energy_technology': 113,
-            'laser_technology': 120,
-            'ion_technology': 121,
-            'hyperspace_technology': 114,
-            'plasma_technology': 122,
-            'combustion_drive': 115,
-            'impulse_drive': 117,
-            'hyperspace_drive': 118,
-            'espionage_technology': 106,
-            'computer_technology': 108,
-            'astrophysics': 124,
-            'intergalactic_research_network': 123,
-            'graviton_technology': 199,
-            'weapons_technology': 109,
-            'shielding_technology': 110,
-            'armour_technology': 111
-            }
+            # NL
+            'Spionagetechniek': 106,
+            'Computertechniek': 108,
+            'Wapentechniek': 109,
+            'Schildtechniek': 110,
+            'Pantsertechniek': 111,
+            'Energietechniek': 113,
+            'Hyperruimtetechniek': 114,
+            'Verbrandingsmotor': 115,
+            'Impulsmotor': 117,
+            'Hyperruimtemotor': 118,
+            'Lasertechniek': 120,
+            'Iontechniek': 121,
+            'Plasmatechniek': 122,
+            'IntergalactischOnderzoeksnetwerk': 123,
+            'Astrofysica': 124,
+            'Gravitontechniek': 199,
+
+            # FR
+            'TechnologieOrdinateur': 108,
+            'Astrophysique': 124,
+            'TechnologieEspionnage': 106}
 
 Speed = {'10%': 1,
          '20%': 2,
@@ -159,9 +174,74 @@ Missions = {'Attack': 1,
             'Destroy': 9,
             'Expedition': 15}
 
-PlanetType = {'Planet': 1,
-            'DebriField': 2,
-            'Moon': 3
-
-
-}
+Formules = {
+        'batiments' : {
+            'metal_mine': { 
+                'cout': {
+                    'Metal':[60,1.5], 'Crystal':[15,1.5], 'Deuterium':[0,0]
+                },
+                'production': [30,1.1],
+                'consommation': [10,1.1],
+            },
+            'crystal_mine':{
+                'cout': {
+                    'Metal':[48, 1.6], 'Crystal':[24,1.6], 'Deuterium':[0,0]
+                    },
+                'production': [20,1.1],
+                'consommation': [10,1.1],
+            },
+            'deuterium_synthesizer':{
+                'cout': {
+                    'Metal':[225,1.5], 'Crystal':[75,1.5], 'Deuterium':[0,0]
+                    },
+                'production': [10,1.1],
+                'consommation': [20,1.1]
+            },
+        },
+        'energy' : {
+            'solar_plant':{
+                'cout': {
+                    'Metal':[75,1.5], 'Crystal':[30,1.5], 'Deuterium':[0,0]
+                    },
+                'production': [20,1.1],
+                'consommation': [0,0]
+            },
+            'solar_satellite':{
+                'cout': {
+                    'Metal':[0,0], 'Crystal':[0,0], 'Deuterieum':[0,0]
+                    },
+                'production': [],
+                'consommation': [0,0]
+            },
+            'fusion_reactor':{
+                'cout': {
+                    'Metal':[0,0], 'Crystal':[0,0], 'Deuterieum':[0,0]
+                    },
+                'production': [],
+                'consommation': [10,1.1]
+            },
+        },
+        'storage' :{
+            'metal_storage':{
+                'cout': {
+                    'Metal':[0,0], 'Crystal':[0,0], 'Deuterieum':[0,0]
+                    },
+                'capacite': [1.6],
+                'consommation': [0,0]
+            },
+            'crystal_storage':{
+                'cout': {
+                    'Metal':[0,0], 'Crystal':[0,0], 'Deuterieum':[0,0]
+                    },
+                'capacite': [1.6],
+                'consommation': [0,0]
+            },
+            'deuterium_tank':{
+                'cout': {
+                    'Metal':[0,0], 'Crystal':[0,0], 'Deuterieum':[0,0]
+                    },
+                'capacite': [1.6],
+                'consommation': [0,0]
+            },
+        }
+    }
