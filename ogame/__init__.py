@@ -792,37 +792,22 @@ class OGame(object):
         headers = {'X-Requested-With': 'XMLHttpRequest'}
         payload = {'tab': 20,
                    'ajax': 1}
+        url = self.get_url('messages', payload)
+        res = self.session.get(url).content.decode('utf8')
+        return res
+
+    def delete_spy_reports(self, message_id):
+        headers = {'X-Requested-With': 'XMLHttpRequest'}
+        payload = {'messageId': message_id, 'action': 103, 'ajax': 1}
         url = self.get_url('messages')
         res = self.session.post(url, data=payload, headers=headers).content.decode('utf8')
-
         return res
 
-    def send_spy(self, galaxy, system, position, ship_count):
-        headers = {'X-Requested-With': 'XMLHttpRequest'}
-        payload = {'mission': 6,
-                   'type': 1,
-                   'token': '',
-                   'galaxy': galaxy,
-                   'system': system,
-                   'position': position,
-                   'shipCount': ship_count,
-                   'speed': 10}
-
-        token = ''
-        if miniFleetToken is None or miniFleetToken == '':
-            first_res = self.session.get(self.get_url('overview')).content
-            moon_soup = BeautifulSoup(first_res, 'html.parser')
-            data = moon_soup.find_all('script', {'type': 'text/javascript'})
-            parameter = 'miniFleetToken'
-            for d in data:
-                d = d.text
-                if 'var miniFleetToken=' in d:
-                    regex_string = 'var {parameter}="(.*?)"'.format(parameter=parameter)
-                    token = re.findall(regex_string, d)
-        else:
-            token = miniFleetToken
-
-        url = self.get_url('minifleet', {'ajax': 1})
-        payload['token'] = token
-        res = self.session.post(url, data=payload, headers=headers).content.decode('utf8')
-        return res
+    def get_flying_fleets(self):
+        url = self.get_url('movement')
+        res = self.session.get(url).content
+        soup = BeautifulSoup(res, 'lxml')
+        fleets = soup.find('div', {'class': 'fleetStatus'}).find('span', {'class': 'fleetSlots'}).find('span', {
+            'class': 'current'}).contents[0]
+        return fleets
+    
