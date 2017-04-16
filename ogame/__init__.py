@@ -813,3 +813,9 @@ class OGame(object):
             return '0'
         return fleets.contents[0]
     
+    def jumpgate_execute(self):
+        res = self.session.get(self.get_url('jumpgate_execute')).content
+        headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+        return True
+    
+    
