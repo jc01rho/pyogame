@@ -531,8 +531,8 @@ class OGame(object):
         payload.update({'crystal': resources.get('crystal'),
                         'deuterium': resources.get('deuterium'),
                         'metal': resources.get('metal'),
-                        'mission': mission,
-                        'holdingtime': acsDefHoldTime
+                        'mission': mission ,
+                        'holdingtime' : acsDefHoldTime
                         })
         res = self.session.post(self.get_url('movement'), data=payload).content
 
