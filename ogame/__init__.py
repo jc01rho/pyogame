@@ -913,43 +913,108 @@ class OGame(object):
         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
         return True
 
-    def Consommation(self, type, batiment, lvl):
-        """ Retourne la consommation du batiment du level lvl + 1 """
-        energieLvl = constants.Formules[type][batiment]['consommation'][0] * lvl * (
-        constants.Formules[type][batiment]['consommation'][1] ** lvl)
-        energieNextLvl = constants.Formules[type][batiment]['consommation'][0] * (lvl + 1) * (
-        constants.Formules[type][batiment]['consommation'][1] ** (lvl + 1))
-        return math.floor(energieNextLvl - energieLvl)
 
-    def building_cost(self, type, batiment, lvl):
-        """ Retourne le cout d'un batiment lvl + 1 """
-        cost = {}
-        cost['metal'] = int(math.floor(constants.Formules[type][batiment]['cout']['Metal'][0] *
-                                       constants.Formules[type][batiment]['cout']['Metal'][1] ** (lvl - 1)))
-        cost['crystal'] = int(math.floor(constants.Formules[type][batiment]['cout']['Crystal'][0] *
-                                         constants.Formules[type][batiment]['cout']['Crystal'][1] ** (lvl - 1)))
-        cost['deuterium'] = int(math.floor(constants.Formules[type][batiment]['cout']['Deuterium'][0] *
-                                           constants.Formules[type][batiment]['cout']['Deuterium'][1] ** (lvl - 1)))
-        return cost
+    def send_minifleet_spy(self, where, ship_count, token):
+        headers = {'X-Requested-With': 'XMLHttpRequest'}
+        payload = {'mission': 6,
+                   'galaxy': where.get('galaxy'),
+                   'system': where.get('system'),
+                   'position': where.get('position'),
+                   'type': 1,
+                   'shipCount': ship_count,
+                   'token': token,
+                   'speed': 10
+                   }
+        res = self.session.post(self.get_url('minifleet'), params={'ajax': 1}, headers=headers, data=payload).content
+        try:
+            json_response = json.loads(res)
+        except ValueError:
+            from send_message import send_message
+            send_message(
+                'No se pudo espiar a {}:{}:{}'.format(where.get('galaxy'), where.get('system'), where.get('position')))
+            return None
+        res_dict = json_response.get('response').get('success')
+        if res_dict:
+            return 'Sended spy probes'
+        return None
 
-    def getProduction(self, type, batiment, lvl):
-        """ Retourne le cout d'un batiment lvl + 1 """
-        production = 0
-        production = (self.universe_speed * constants.Formules[type][batiment]['production'][0] * lvl *
-                      (constants.Formules[type][batiment]['production'][1] ** lvl) ) + \
-                     self.universe_speed * constants.Formules[type][batiment]['production'][0]
+    def get_minifleet_token(self, html):
+        token = None
+        moon_soup = BeautifulSoup(html, 'html.parser')
+        data = moon_soup.find_all('script', {'type': 'text/javascript'})
+        parameter = 'miniFleetToken'
+        for d in data:
+            d = d.text
+            if 'var miniFleetToken=' in d:
+                regex_string = 'var {parameter}="(.*?)"'.format(parameter=parameter)
+                token = re.findall(regex_string, d)
 
+        return token
 
-        return production
+    def check_new_messages(self, html):
+        total_messages = 0
+        soup = BeautifulSoup(html, 'lxml')
+        messages = soup.find('span', {'class': 'totalChatMessages'})
+        if messages is not None:
+            total_messages = int(messages.attrs['data-new-messages'])
 
+        return total_messages
 
-    def storageSize(self, type, batiment, lvl):
-        capacity = -1
-        capacity = 5000 * int(math.floor(2.5 * (math.e ** (lvl * 20 / 33))))
-        return capacity
+    def get_new_messages(self):
+        msg_list = []
+        html = self.session.get(self.get_url('chat')).content
+        soup = BeautifulSoup(html, 'lxml')
+        new_chats = soup.find('ul', {'id': 'chatMsgList'}).findAll('li', {'class': 'msg_new'})
+        if new_chats is None:
+            return None
+        for chat in new_chats:
+            message = ''
+            player = ''
+            try:
+                message = chat.find('span', {'class': 'msg_content'}).contents[0]
+                player = chat.find('span', {'class': 'msg_title'}).contents[2]
+            except UnicodeEncodeError:
+                print('Error getting messages')
+            msg = {'message': message.encode('utf-8'), 'player': player.encode('utf-8')}
+            msg_list.append(msg)
 
-    def galaxy_infos(self, galaxy, system):
-        html = self.galaxy_content(galaxy, system)['galaxy']
+        return msg_list
+
+    def can_build(self, planet_id, building, building_type):
+        building_url = building_type
+        if building_type == 'supply':
+            building_url = 'resources'
+            
+        html = self.session.get(self.get_url(building_url, {'cp': planet_id})).content
+        soup = BeautifulSoup(html, 'lxml')
+        is_free = soup.find('div', {'class': '{}{}'.format(building_type, building)}).find('a', {'class': 'fastBuild'})
+        if is_free is not None:
+            return True
+        else:
+            return False
+
+    def can_build_research(self, building):
+        html = self.session.get(self.get_url('research')).content
+        soup = BeautifulSoup(html, 'lxml')
+        is_free = soup.find('div', {'class': 'research{}'.format(building)}).find('a', {'class': 'fastBuild'})
+        if is_free is not None:
+            return True
+        else:
+            return False
+
+    def alliance_apply(self, alliance_id, message):
+        url = self.get_url('allianceWriteApplication', {'action': 19})
+        payload = {'text': message,
+                   'appliedAllyId': alliance_id}
+        headers = {'X-Requested-With': 'XMLHttpRequest'}
+        res = self.session.post(url, headers=headers, data=payload).content
+
+    def get_ip(self):
+        res = self.session.get('http://ifconfig.me/ip')
+        return 'ip session: {}'.format(res.text.strip())
+
+    def delete_planet(self, planet_id):
+        html = self.session.get(self.get_url('planetlayer')).content
         soup = BeautifulSoup(html, 'lxml')
         form = soup.find('form', {'id': 'planetMaintenanceDelete'})
         abandon = form.find('input', {'name': 'abandon'}).get('value')
@@ -968,19 +1033,20 @@ class OGame(object):
         delete_action = self.session.post(self.get_url('planetGiveup'), headers=headers, data=delete_payload).content   
 
 
-def Consommation(type, batiment, lvl):
-
-    """ Retourne la consommation du batiment du level lvl + 1 """
-    energieLvl = constants.Formules[type][batiment]['consommation'][0] * lvl * (constants.Formules[type][batiment]['consommation'][1]**lvl)
-    energieNextLvl = constants.Formules[type][batiment]['consommation'][0] * (lvl+1) * (constants.Formules[type][batiment]['consommation'][1]**(lvl+1))
-    return math.floor(energieNextLvl - energieLvl)
 
 
-def building_cost(type, batiment, lvl):
-    """ Retourne le cout d'un batiment lvl + 1 """
-    cost = {}
-    cost['metal'] = int(math.floor(constants.Formules[type][batiment]['cout']['Metal'][0]*constants.Formules[type][batiment]['cout']['Metal'][1]**(lvl-1)))
-    cost['crystal'] = int(math.floor(constants.Formules[type][batiment]['cout']['Crystal'][0]*constants.Formules[type][batiment]['cout']['Crystal'][1]**(lvl-1)))
-    cost['deuterium'] = int(math.floor(constants.Formules[type][batiment]['cout']['Deuterium'][0]*constants.Formules[type][batiment]['cout']['Deuterium'][1]**(lvl-1)))
-    return cost
+    def Consommation(type, batiment, lvl):
+        """ Retourne la consommation du batiment du level lvl + 1 """
+        energieLvl = constants.Formules[type][batiment]['consommation'][0] * lvl * (constants.Formules[type][batiment]['consommation'][1]**lvl)
+        energieNextLvl = constants.Formules[type][batiment]['consommation'][0] * (lvl+1) * (constants.Formules[type][batiment]['consommation'][1]**(lvl+1))
+        return math.floor(energieNextLvl - energieLvl)
+
+    def building_cost(type, batiment, lvl):
+        """ Retourne le cout d'un batiment lvl + 1 """
+        cost = {}
+        cost['metal'] = int(math.floor(constants.Formules[type][batiment]['cout']['Metal'][0]*constants.Formules[type][batiment]['cout']['Metal'][1]**(lvl-1)))
+        cost['crystal'] = int(math.floor(constants.Formules[type][batiment]['cout']['Crystal'][0]*constants.Formules[type][batiment]['cout']['Crystal'][1]**(lvl-1)))
+        cost['deuterium'] = int(math.floor(constants.Formules[type][batiment]['cout']['Deuterium'][0]*constants.Formules[type][batiment]['cout']['Deuterium'][1]**(lvl-1)))
+        return cost
+
 
