@@ -127,7 +127,8 @@ class OGame(object):
     def __init__(self, universe, username, password, domain='en.ogame.gameforge.com', auto_bootstrap=True,
                  sandbox=False, sandbox_obj=None):
         self.session = requests.session()
-        self.session.headers.update({'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36'})
+        self.session.headers.update({
+                                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36'})
         self.sandbox = sandbox
         self.sandbox_obj = sandbox_obj if sandbox_obj is not None else {}
         self.universe = universe
@@ -812,28 +813,25 @@ class OGame(object):
         url = self.get_url('movement')
         res = self.session.get(url).content
         soup = BeautifulSoup(res, 'lxml')
-        fleets = soup.find('span', {
+        current_fleets = soup.find('span', {
             'class': 'current'})
-        if fleets is None:
-            return '0'
-        return fleets.contents[0]
-    
+        max_fleets = soup.find('span', {
+            'class': 'all'})
+        if current_fleets is None:
+            text_fleets = soup.find('span', {'class': 'tooltip advice'}).contents[1]
+            current_fleets = int(text_fleets.split('/')[0])
+            max_fleets = int(text_fleets.split('/')[1])
+            available_fleets = max_fleets - current_fleets
+            fleet_dict = {'current_fleets': current_fleets, 'max_fleets': max_fleets,
+                          'available_fleets': available_fleets}
+            return fleet_dict
+        current_fleets = int(current_fleets.contents[0])
+        max_fleets = int(max_fleets.contents[0])
+        available_fleets = max_fleets - current_fleets
+        fleet_dict = {'current_fleets': current_fleets, 'max_fleets': max_fleets, 'available_fleets': available_fleets}
+        return fleet_dict
+
     def jumpgate_execute(self):
         res = self.session.get(self.get_url('jumpgate_execute')).content
         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
         return True
-
-    def Consommation(self, type, batiment, lvl):
-        """ Retourne la consommation du batiment du level lvl + 1 """
-        energieLvl = constants.Formules[type][batiment]['consommation'][0] * lvl * (constants.Formules[type][batiment]['consommation'][1]**lvl)
-        energieNextLvl = constants.Formules[type][batiment]['consommation'][0] * (lvl+1) * (constants.Formules[type][batiment]['consommation'][1]**(lvl+1))
-        return math.floor(energieNextLvl - energieLvl)
-
-    def building_cost(self, type, batiment, lvl):
-        """ Retourne le cout d'un batiment lvl + 1 """
-        cost = {}
-        cost['metal'] = int(math.floor(constants.Formules[type][batiment]['cout']['Metal'][0]*constants.Formules[type][batiment]['cout']['Metal'][1]**(lvl-1)))
-        cost['crystal'] = int(math.floor(constants.Formules[type][batiment]['cout']['Crystal'][0]*constants.Formules[type][batiment]['cout']['Crystal'][1]**(lvl-1)))
-        cost['deuterium'] = int(math.floor(constants.Formules[type][batiment]['cout']['Deuterium'][0]*constants.Formules[type][batiment]['cout']['Deuterium'][1]**(lvl-1)))
-        return cost
-
