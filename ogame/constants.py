@@ -200,7 +200,7 @@ Missions = {'Attack': 1,
 
 
 Formules = {
-        'batiments' : {
+        'Buildings' : {
             'metal_mine': { 
                 'cout': {
                     'Metal':[60,1.5], 'Crystal':[15,1.5], 'Deuterium':[0,0]
@@ -223,7 +223,7 @@ Formules = {
                 'consommation': [20,1.1]
             },
         },
-        'energy' : {
+        'Energy' : {
             'solar_plant':{
                 'cout': {
                     'Metal':[75,1.5], 'Crystal':[30,1.5], 'Deuterium':[0,0]
@@ -246,7 +246,7 @@ Formules = {
                 'consommation': [10,1.1]
             },
         },
-        'storage' :{
+        'Storage' :{
             'metal_storage':{
                 'cout': {
                     'Metal':[0,0], 'Crystal':[0,0], 'Deuterieum':[0,0]
