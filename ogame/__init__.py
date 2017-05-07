@@ -5,25 +5,13 @@ import math
 import re
 import time
 import arrow
-import requests, requests.utils
-import pickle
-
+import requests
 
 from ogame import constants
 from ogame.errors import BAD_UNIVERSE_NAME, BAD_DEFENSE_ID, NOT_LOGGED, BAD_CREDENTIALS, CANT_PROCESS, BAD_BUILDING_ID, \
     BAD_SHIP_ID, BAD_RESEARCH_ID
 from bs4 import BeautifulSoup
 from dateutil import tz
-miniFleetToken = None
-
-
-def update_cookies(session_dict):
-    pickle.dump(session_dict, open("save.txt", "wb"))
-
-
-def set_mini_fleet_token(token):
-    global miniFleetToken  # Needed to modify global copy of globvar
-    miniFleetToken = token
 
 
 def parse_int(text):
@@ -156,9 +144,6 @@ class OGame(object):
         session_found = soup.find('meta', {'name': 'ogame-session'})
         if session_found:
             self.ogame_session = session_found.get('content')
-            # Save the session to a file
-            session_dict = self.session.cookies
-            update_cookies(session_dict)
         else:
             raise BAD_CREDENTIALS
 
@@ -235,7 +220,7 @@ class OGame(object):
         tmp = re.search(r'textContent\[7\]="([^"]+)"', html).group(1)
         soup = BeautifulSoup(tmp, 'lxml')
         tmp = soup.text
-        infos = re.search(r'([\d\\.]+) \(Lugar ([\d\.]+) de ([\d\.]+)\)', tmp)
+        infos = re.search(r'([\d\\.]+) \(Place ([\d\.]+) of ([\d\.]+)\)', tmp)
         res['points'] = parse_int(infos.group(1))
         res['rank'] = parse_int(infos.group(2))
         res['total'] = parse_int(infos.group(3))
@@ -724,7 +709,6 @@ class OGame(object):
 
     def get_overview(self, planet_id):
         html = self.session.get(self.get_url('overview', {'cp': planet_id})).content
-        update_cookies(self.session.cookies)
         if not self.is_logged(html):
             raise NOT_LOGGED
         soup = BeautifulSoup(html, 'lxml')
@@ -848,4 +832,21 @@ class OGame(object):
                    'speed': 10
                    }
         res = self.session.post(self.get_url('minifleet'), params={'ajax': 1}, headers=headers, data=payload).content
-        return res
+        json_response = json.loads(res)
+        res_dict = json_response.get('response').get('success')
+        if res_dict:
+            return 'Sended spy probes'
+        return None
+
+    def get_minifleet_token(self, html):
+        token = None
+        moon_soup = BeautifulSoup(html, 'html.parser')
+        data = moon_soup.find_all('script', {'type': 'text/javascript'})
+        parameter = 'miniFleetToken'
+        for d in data:
+            d = d.text
+            if 'var miniFleetToken=' in d:
+                regex_string = 'var {parameter}="(.*?)"'.format(parameter=parameter)
+                token = re.findall(regex_string, d)
+
+        return token
