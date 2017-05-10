@@ -844,15 +844,7 @@ class OGame(object):
             return 'Sended spy probes'
         return None
 
-    def get_minifleet_token(self, html):
-        token = None
-        moon_soup = BeautifulSoup(html, 'html.parser')
-        data = moon_soup.find_all('script', {'type': 'text/javascript'})
-        parameter = 'miniFleetToken'
-        for d in data:
-            d = d.text
-            if 'var miniFleetToken=' in d:
-                regex_string = 'var {parameter}="(.*?)"'.format(parameter=parameter)
-                token = re.findall(regex_string, d)
-
-        return token
+    def storageSize(self, type, batiment, lvl):
+        capacity = -1
+        capacity = 5000 * int(math.floor(2.5 * (math.e ** ( constants.Formules[type][batiment] * 20 / 33))))
+        return capacity
