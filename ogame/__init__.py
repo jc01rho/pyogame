@@ -5,13 +5,25 @@ import math
 import re
 import time
 import arrow
-import requests
+import requests, requests.utils
+import pickle
 
 from ogame import constants
 from ogame.errors import BAD_UNIVERSE_NAME, BAD_DEFENSE_ID, NOT_LOGGED, BAD_CREDENTIALS, CANT_PROCESS, BAD_BUILDING_ID, \
     BAD_SHIP_ID, BAD_RESEARCH_ID
 from bs4 import BeautifulSoup
 from dateutil import tz
+
+miniFleetToken = None
+
+
+def update_cookies(session_dict):
+    pickle.dump(session_dict, open("save.txt", "wb"))
+
+
+def set_mini_fleet_token(token):
+    global miniFleetToken  # Needed to modify global copy of globvar
+    miniFleetToken = token
 
 
 def parse_int(text):
@@ -505,8 +517,8 @@ class OGame(object):
         payload.update({'crystal': resources.get('crystal'),
                         'deuterium': resources.get('deuterium'),
                         'metal': resources.get('metal'),
-                        'mission': mission ,
-                        'holdingtime' : acsDefHoldTime
+                        'mission': mission,
+                        'holdingtime': acsDefHoldTime
                         })
         res = self.session.post(self.get_url('movement'), data=payload).content
 
@@ -523,7 +535,7 @@ class OGame(object):
                 continue
             fleet_id = int(reversal_span.get('ref'))
             if dest == '[%s:%s:%s]' % (
-            where['galaxy'], where['system'], where['position']) and origin == '[%s]' % origin_coords:
+                    where['galaxy'], where['system'], where['position']) and origin == '[%s]' % origin_coords:
                 matches.append(fleet_id)
         if matches:
             return max(matches)
@@ -560,9 +572,9 @@ class OGame(object):
         for event in events:
             mission_type = int(event['data-mission-type'])
             if mission_type not in [1, 2]:
-                if checkSpyAlso and mission_type not in [6] :
+                if checkSpyAlso and mission_type not in [6]:
                     continue
-                elif checkSpyAlso is False :
+                elif checkSpyAlso is False:
                     continue
                 else:
                     None
@@ -599,8 +611,9 @@ class OGame(object):
             second = int(second)
             arrival_time = self.get_datetime_from_time(hour, minute, second)
             attack.update({'arrival_time': arrival_time})
-            #todo Mn replace 제대로
-            attack.update({'detailsFleet': int(event.find('td', {'class': 'detailsFleet'}).text.replace(".","").replace("Mn","").strip())})
+            # todo Mn replace 제대로
+            attack.update({'detailsFleet': int(
+                event.find('td', {'class': 'detailsFleet'}).text.replace(".", "").replace("Mn", "").strip())})
 
             if mission_type == 1:
                 attacker_id = event.find('a', {'class': 'sendMail'})['data-playerid']
@@ -686,6 +699,12 @@ class OGame(object):
 
         infos_label = BeautifulSoup(link['title'], 'lxml').text
         infos = get_planet_infos_regex(infos_label)
+        isUnderConstruction = soup.find('table', {'class': "construction active"}).find('td', {'class': "desc timer"})
+        if isUnderConstruction is None:
+            isUnderConstruction = False
+        else:
+            isUnderConstruction = True
+
         res = {}
         res['img'] = link.find('img').get('src')
         res['id'] = planet_id
@@ -699,6 +718,7 @@ class OGame(object):
         res['fields']['built'] = int(infos.group(6))
         res['fields']['total'] = int(infos.group(7))
         res['temperature'] = {}
+        res['isUnderConstruction'] = isUnderConstruction
         if infos.groups().__len__() > 7:  # is a planet
             res['temperature']['min'] = int(infos.group(8))
             res['temperature']['max'] = int(infos.group(9))
@@ -801,58 +821,71 @@ class OGame(object):
         res = self.session.post(url, data=payload, headers=headers).content.decode('utf8')
         return res
 
+    def send_spy(self, galaxy, system, position, ship_count):
+        headers = {'X-Requested-With': 'XMLHttpRequest'}
+        payload = {'mission': 6,
+                   'type': 1,
+                   'token': '',
+                   'galaxy': galaxy,
+                   'system': system,
+                   'position': position,
+                   'shipCount': ship_count,
+                   'speed': 10}
+
+        token = ''
+        if miniFleetToken is None or miniFleetToken == '':
+            first_res = self.session.get(self.get_url('overview')).content
+            moon_soup = BeautifulSoup(first_res, 'html.parser')
+            data = moon_soup.find_all('script', {'type': 'text/javascript'})
+            parameter = 'miniFleetToken'
+            for d in data:
+                d = d.text
+                if 'var miniFleetToken=' in d:
+                    regex_string = 'var {parameter}="(.*?)"'.format(parameter=parameter)
+                    token = re.findall(regex_string, d)
+        else:
+            token = miniFleetToken
+
+        url = self.get_url('minifleet', {'ajax': 1})
+        payload['token'] = token
+        res = self.session.post(url, data=payload, headers=headers).content.decode('utf8')
+        return res
+
     def get_flying_fleets(self):
         url = self.get_url('movement')
         res = self.session.get(url).content
         soup = BeautifulSoup(res, 'lxml')
         current_fleets = soup.find('span', {
             'class': 'current'})
-        max_fleets = soup.find('span', {
-            'class': 'all'})
-        if current_fleets is None:
-            text_fleets = soup.find('span', {'class': 'tooltip advice'}).contents[1]
-            current_fleets = int(text_fleets.split('/')[0])
-            max_fleets = int(text_fleets.split('/')[1])
-            available_fleets = max_fleets - current_fleets
-            fleet_dict = {'current_fleets': current_fleets, 'max_fleets': max_fleets,
-                          'available_fleets': available_fleets}
-            return fleet_dict
-        current_fleets = int(current_fleets.contents[0])
-        max_fleets = int(max_fleets.contents[0])
-        available_fleets = max_fleets - current_fleets
-        fleet_dict = {'current_fleets': current_fleets, 'max_fleets': max_fleets, 'available_fleets': available_fleets}
-        return fleet_dict
+        if fleets is None:
+            return '0'
+        return fleets.contents[0]
 
     def jumpgate_execute(self):
         res = self.session.get(self.get_url('jumpgate_execute')).content
         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
         return True
 
-    def send_minifleet_spy(self, where, ship_count, token):
-        headers = {'X-Requested-With': 'XMLHttpRequest'}
-        payload = {'mission': 6,
-                   'galaxy': where.get('galaxy'),
-                   'system': where.get('system'),
-                   'position': where.get('position'),
-                   'type': 1,
-                   'shipCount': ship_count,
-                   'token': token,
-                   'speed': 10
-                   }
-        res = self.session.post(self.get_url('minifleet'), params={'ajax': 1}, headers=headers, data=payload).content
-        try:
-            json_response = json.loads(res)
-        except ValueError:
-            from send_message import send_message
-            send_message(
-                'No se pudo espiar a {}:{}:{}'.format(where.get('galaxy'), where.get('system'), where.get('position')))
-            return None
-        res_dict = json_response.get('response').get('success')
-        if res_dict:
-            return 'Sended spy probes'
-        return None
+    def Consommation(self, type, batiment, lvl):
+        """ Retourne la consommation du batiment du level lvl + 1 """
+        energieLvl = constants.Formules[type][batiment]['consommation'][0] * lvl * (
+        constants.Formules[type][batiment]['consommation'][1] ** lvl)
+        energieNextLvl = constants.Formules[type][batiment]['consommation'][0] * (lvl + 1) * (
+        constants.Formules[type][batiment]['consommation'][1] ** (lvl + 1))
+        return math.floor(energieNextLvl - energieLvl)
+
+    def building_cost(self, type, batiment, lvl):
+        """ Retourne le cout d'un batiment lvl + 1 """
+        cost = {}
+        cost['metal'] = int(math.floor(constants.Formules[type][batiment]['cout']['Metal'][0] *
+                                       constants.Formules[type][batiment]['cout']['Metal'][1] ** (lvl - 1)))
+        cost['crystal'] = int(math.floor(constants.Formules[type][batiment]['cout']['Crystal'][0] *
+                                         constants.Formules[type][batiment]['cout']['Crystal'][1] ** (lvl - 1)))
+        cost['deuterium'] = int(math.floor(constants.Formules[type][batiment]['cout']['Deuterium'][0] *
+                                           constants.Formules[type][batiment]['cout']['Deuterium'][1] ** (lvl - 1)))
+        return cost
 
     def storageSize(self, type, batiment, lvl):
         capacity = -1
-        capacity = 5000 * int(math.floor(2.5 * (math.e ** ( constants.Formules[type][batiment] * 20 / 33))))
+        capacity = 5000 * int(math.floor(2.5 * (math.e ** (constants.Formules[type][batiment] * 20 / 33))))
         return capacity
