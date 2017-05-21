@@ -839,98 +839,40 @@ class OGame(object):
             raise NOT_LOGGED
         return obj
 
-    def get_spy_reports(self):
-        headers = {'X-Requested-With': 'XMLHttpRequest'}
-        payload = {'tab': 20,
-                   'ajax': 1}
-        url = self.get_url('messages', payload)
-        res = self.session.get(url).content.decode('utf8')
+    def galaxy_infos(self, galaxy, system):
+        html = self.galaxy_content(galaxy, system)['galaxy']
+        soup = BeautifulSoup(html, 'lxml')
+        rows = soup.findAll('tr', {'class': 'row'})
+        res = []
+        for row in rows:
+            if 'empty_filter' not in row.get('class'):
+                tooltips = row.findAll('div', {'class': 'htmlTooltip'})
+                planet_tooltip = tooltips[0]
+                planet_name = planet_tooltip.find('h1').find('span').text
+                planet_url = planet_tooltip.find('img').get('src')
+                coords_raw = planet_tooltip.find('span', {'id': 'pos-planet'}).text
+                coords = re.search(r'\[(\d+):(\d+):(\d+)\]', coords_raw)
+                galaxy, system, position = coords.groups()
+                planet_infos = {}
+                planet_infos['name'] = planet_name
+                planet_infos['img'] = planet_url
+                planet_infos['coordinate'] = {}
+                planet_infos['coordinate']['galaxy'] = int(galaxy)
+                planet_infos['coordinate']['system'] = int(system)
+                planet_infos['coordinate']['position'] = int(position)
+                if len(tooltips) > 1:
+                    player_tooltip = tooltips[1]
+                    player_id_raw = player_tooltip.get('id')
+                    player_id = int(re.search(r'player(\d+)', player_id_raw).groups()[0])
+                    player_name = player_tooltip.find('h1').find('span').text
+                    player_rank = parse_int(player_tooltip.find('li', {'class': 'rank'}).find('a').text)
+                else:
+                    player_id = None
+                    player_name = row.find('td', {'class': 'playername'}).find('span').text.strip()
+                    player_rank = None
+                planet_infos['player'] = {}
+                planet_infos['player']['id'] = player_id
+                planet_infos['player']['name'] = player_name
+                planet_infos['player']['rank'] = player_rank
+                res.append(planet_infos)
         return res
-
-    def delete_spy_reports(self, message_id):
-        headers = {'X-Requested-With': 'XMLHttpRequest'}
-        payload = {'messageId': message_id, 'action': 103, 'ajax': 1}
-        url = self.get_url('messages')
-        res = self.session.post(url, data=payload, headers=headers).content.decode('utf8')
-
-        return res
-
-    def send_spy(self, galaxy, system, position, ship_count):
-        headers = {'X-Requested-With': 'XMLHttpRequest'}
-        payload = {'mission': 6,
-                   'type': 1,
-                   'token': '',
-                   'galaxy': galaxy,
-                   'system': system,
-                   'position': position,
-                   'shipCount': ship_count,
-                   'speed': 10}
-
-        token = ''
-        if miniFleetToken is None or miniFleetToken == '':
-            first_res = self.session.get(self.get_url('overview')).content
-            moon_soup = BeautifulSoup(first_res, 'html.parser')
-            data = moon_soup.find_all('script', {'type': 'text/javascript'})
-            parameter = 'miniFleetToken'
-            for d in data:
-                d = d.text
-                if 'var miniFleetToken=' in d:
-                    regex_string = 'var {parameter}="(.*?)"'.format(parameter=parameter)
-                    token = re.findall(regex_string, d)
-        else:
-            token = miniFleetToken
-
-        url = self.get_url('minifleet', {'ajax': 1})
-        payload['token'] = token
-        res = self.session.post(url, data=payload, headers=headers).content.decode('utf8')
-        return res
-
-    def get_flying_fleets(self):
-        url = self.get_url('movement')
-        res = self.session.get(url).content
-        soup = BeautifulSoup(res, 'lxml')
-        fleets = soup.find('span', {
-            'class': 'current'})
-        if fleets is None:
-            return '0'
-        return fleets.contents[0]
-
-    def jumpgate_execute(self):
-        res = self.session.get(self.get_url('jumpgate_execute')).content
-        headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-        return True
-
-    def Consommation(self, type, batiment, lvl):
-        """ Retourne la consommation du batiment du level lvl + 1 """
-        energieLvl = constants.Formules[type][batiment]['consommation'][0] * lvl * (
-        constants.Formules[type][batiment]['consommation'][1] ** lvl)
-        energieNextLvl = constants.Formules[type][batiment]['consommation'][0] * (lvl + 1) * (
-        constants.Formules[type][batiment]['consommation'][1] ** (lvl + 1))
-        return math.floor(energieNextLvl - energieLvl)
-
-    def building_cost(self, type, batiment, lvl):
-        """ Retourne le cout d'un batiment lvl + 1 """
-        cost = {}
-        cost['metal'] = int(math.floor(constants.Formules[type][batiment]['cout']['Metal'][0] *
-                                       constants.Formules[type][batiment]['cout']['Metal'][1] ** (lvl - 1)))
-        cost['crystal'] = int(math.floor(constants.Formules[type][batiment]['cout']['Crystal'][0] *
-                                         constants.Formules[type][batiment]['cout']['Crystal'][1] ** (lvl - 1)))
-        cost['deuterium'] = int(math.floor(constants.Formules[type][batiment]['cout']['Deuterium'][0] *
-                                           constants.Formules[type][batiment]['cout']['Deuterium'][1] ** (lvl - 1)))
-        return cost
-
-    def getProduction(self, type, batiment, lvl):
-        """ Retourne le cout d'un batiment lvl + 1 """
-        production = 0
-        production = (self.universe_speed * constants.Formules[type][batiment]['production'][0] * lvl *
-                      (constants.Formules[type][batiment]['production'][1] ** lvl) ) + \
-                     self.universe_speed * constants.Formules[type][batiment]['production'][0]
-
-
-        return production
-
-
-    def storageSize(self, type, batiment, lvl):
-        capacity = -1
-        capacity = 5000 * int(math.floor(2.5 * (math.e ** (lvl * 20 / 33))))
-        return capacity
