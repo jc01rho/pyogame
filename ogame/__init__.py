@@ -137,7 +137,7 @@ class OGame(object):
         self.password = password
         self.universe_speed = 1
         self.server_url = ''
-        self.server_tz = 'GMT+1'
+        self.server_tz = 'GMT+0'
         if auto_bootstrap:
             self.login()
             self.universe_speed = self.get_universe_speed()
@@ -878,75 +878,68 @@ class OGame(object):
         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
         return True
 
-    def Consommation(self, type, batiment, lvl):
-        """ Retourne la consommation du batiment du level lvl + 1 """
-        energieLvl = constants.Formules[type][batiment]['consommation'][0] * lvl * (
-        constants.Formules[type][batiment]['consommation'][1] ** lvl)
-        energieNextLvl = constants.Formules[type][batiment]['consommation'][0] * (lvl + 1) * (
-        constants.Formules[type][batiment]['consommation'][1] ** (lvl + 1))
-        return math.floor(energieNextLvl - energieLvl)
+    def send_minifleet_spy(self, where, ship_count, token):
+        headers = {'X-Requested-With': 'XMLHttpRequest'}
+        payload = {'mission': 6,
+                   'galaxy': where.get('galaxy'),
+                   'system': where.get('system'),
+                   'position': where.get('position'),
+                   'type': 1,
+                   'shipCount': ship_count,
+                   'token': token,
+                   'speed': 10
+                   }
+        res = self.session.post(self.get_url('minifleet'), params={'ajax': 1}, headers=headers, data=payload).content
+        try:
+            json_response = json.loads(res)
+        except ValueError:
+            from send_message import send_message
+            send_message(
+                'No se pudo espiar a {}:{}:{}'.format(where.get('galaxy'), where.get('system'), where.get('position')))
+            return None
+        res_dict = json_response.get('response').get('success')
+        if res_dict:
+            return 'Sended spy probes'
+        return None
 
-    def building_cost(self, type, batiment, lvl):
-        """ Retourne le cout d'un batiment lvl + 1 """
-        cost = {}
-        cost['metal'] = int(math.floor(constants.Formules[type][batiment]['cout']['Metal'][0] *
-                                       constants.Formules[type][batiment]['cout']['Metal'][1] ** (lvl - 1)))
-        cost['crystal'] = int(math.floor(constants.Formules[type][batiment]['cout']['Crystal'][0] *
-                                         constants.Formules[type][batiment]['cout']['Crystal'][1] ** (lvl - 1)))
-        cost['deuterium'] = int(math.floor(constants.Formules[type][batiment]['cout']['Deuterium'][0] *
-                                           constants.Formules[type][batiment]['cout']['Deuterium'][1] ** (lvl - 1)))
-        return cost
+    def get_minifleet_token(self, html):
+        token = None
+        moon_soup = BeautifulSoup(html, 'html.parser')
+        data = moon_soup.find_all('script', {'type': 'text/javascript'})
+        parameter = 'miniFleetToken'
+        for d in data:
+            d = d.text
+            if 'var miniFleetToken=' in d:
+                regex_string = 'var {parameter}="(.*?)"'.format(parameter=parameter)
+                token = re.findall(regex_string, d)
 
-    def getProduction(self, type, batiment, lvl):
-        """ Retourne le cout d'un batiment lvl + 1 """
-        production = 0
-        production = (self.universe_speed * constants.Formules[type][batiment]['production'][0] * lvl *
-                      (constants.Formules[type][batiment]['production'][1] ** lvl) ) + \
-                     self.universe_speed * constants.Formules[type][batiment]['production'][0]
+        return token
 
-
-        return production
-
-
-    def storageSize(self, type, batiment, lvl):
-        capacity = -1
-        capacity = 5000 * int(math.floor(2.5 * (math.e ** (lvl * 20 / 33))))
-        return capacity
-
-    def galaxy_infos(self, galaxy, system):
-        html = self.galaxy_content(galaxy, system)['galaxy']
+    def check_new_messages(self, html):
+        total_messages = 0
         soup = BeautifulSoup(html, 'lxml')
-        rows = soup.findAll('tr', {'class': 'row'})
-        res = []
-        for row in rows:
-            if 'empty_filter' not in row.get('class'):
-                tooltips = row.findAll('div', {'class': 'htmlTooltip'})
-                planet_tooltip = tooltips[0]
-                planet_name = planet_tooltip.find('h1').find('span').text
-                planet_url = planet_tooltip.find('img').get('src')
-                coords_raw = planet_tooltip.find('span', {'id': 'pos-planet'}).text
-                coords = re.search(r'\[(\d+):(\d+):(\d+)\]', coords_raw)
-                galaxy, system, position = coords.groups()
-                planet_infos = {}
-                planet_infos['name'] = planet_name
-                planet_infos['img'] = planet_url
-                planet_infos['coordinate'] = {}
-                planet_infos['coordinate']['galaxy'] = int(galaxy)
-                planet_infos['coordinate']['system'] = int(system)
-                planet_infos['coordinate']['position'] = int(position)
-                if len(tooltips) > 1:
-                    player_tooltip = tooltips[1]
-                    player_id_raw = player_tooltip.get('id')
-                    player_id = int(re.search(r'player(\d+)', player_id_raw).groups()[0])
-                    player_name = player_tooltip.find('h1').find('span').text
-                    player_rank = parse_int(player_tooltip.find('li', {'class': 'rank'}).find('a').text)
-                else:
-                    player_id = None
-                    player_name = row.find('td', {'class': 'playername'}).find('span').text.strip()
-                    player_rank = None
-                planet_infos['player'] = {}
-                planet_infos['player']['id'] = player_id
-                planet_infos['player']['name'] = player_name
-                planet_infos['player']['rank'] = player_rank
-                res.append(planet_infos)
-        return res
+        messages = soup.find('span', {'class': 'totalChatMessages'})
+        if messages is not None:
+            total_messages = int(messages.attrs['data-new-messages'])
+
+        return total_messages
+
+    def get_new_messages(self):
+        msg_list = []
+        html = self.session.get(self.get_url('chat')).content
+        soup = BeautifulSoup(html, 'lxml')
+        new_chats = soup.find('ul', {'id': 'chatMsgList'}).findAll('li', {'class': 'msg_new'})
+        if new_chats is None:
+            return None
+        for chat in new_chats:
+            message = ''
+            player = ''
+            try:
+                message = chat.find('span', {'class': 'msg_content'}).contents[0]
+                player = chat.find('span', {'class': 'msg_title'}).contents[2]
+            except UnicodeEncodeError:
+                print('Error getting messages')
+            msg = {'message': message.encode('utf-8'), 'player': player.encode('utf-8')}
+            msg_list.append(msg)
+
+        return msg_list
