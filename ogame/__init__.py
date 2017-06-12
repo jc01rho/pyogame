@@ -5,8 +5,8 @@ import math
 import re
 import time
 import arrow
-import requests, requests.utils
-import pickle
+import requests
+import random
 
 from ogame import constants
 from ogame.errors import BAD_UNIVERSE_NAME, BAD_DEFENSE_ID, NOT_LOGGED, BAD_CREDENTIALS, CANT_PROCESS, BAD_BUILDING_ID, \
