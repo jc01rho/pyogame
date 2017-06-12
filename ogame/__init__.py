@@ -9,6 +9,7 @@ import arrow
 import requests
 import json
 import pickle
+import random
 
 
 from ogame import constants
