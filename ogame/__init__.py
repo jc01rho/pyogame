@@ -128,7 +128,7 @@ class OGame(object):
                  sandbox=False, sandbox_obj=None):
         self.session = requests.session()
         self.session.headers.update({
-                                        'User-Agent': 'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'})
+            'User-Agent': 'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'})
         self.sandbox = sandbox
         self.sandbox_obj = sandbox_obj if sandbox_obj is not None else {}
         self.universe = universe
@@ -943,3 +943,12 @@ class OGame(object):
             msg_list.append(msg)
 
         return msg_list
+
+    def can_build(self, planet_id, building, building_type):
+        html = self.session.get(self.get_url(building_type, {'cp': planet_id})).content
+        soup = BeautifulSoup(html, 'lxml')
+        is_free = soup.find('div', {'class': 'supply{}'.format(building)}).find('a', {'class': 'fastBuild'})
+        if is_free is not None:
+            return True
+        else:
+            return False
