@@ -24,6 +24,7 @@ proxies = {
     'https': 'socks5://127.0.0.1:9050'
 }
 
+
 def get_ip():
     url = 'http://ifconfig.me/ip'
     response = requests.get(url, proxies=proxies)
@@ -216,7 +217,8 @@ class OGame(object):
         energy = resources['energy']['resources']['actual']
         darkmatter = resources['darkmatter']['resources']['actual']
         result = {'metal': metal, 'crystal': crystal, 'deuterium': deuterium,
-                  'energy': energy, 'darkmatter': darkmatter, 'max_metal': max_metal, 'max_crystal': max_crystal, 'max_deuterium': max_deuterium}
+                  'energy': energy, 'darkmatter': darkmatter, 'max_metal': max_metal, 'max_crystal': max_crystal,
+                  'max_deuterium': max_deuterium}
         return result
 
     def get_universe_speed(self, res=None):
@@ -844,9 +846,21 @@ class OGame(object):
         res = self.session.post(url, data=payload, headers=headers).content.decode('utf8')
         try:
             obj = json.loads(res)
+            galaxy_view = obj['galaxy']
         except ValueError:
             raise NOT_LOGGED
-        return obj
+        return galaxy_view
+
+    def find_empty_slots(self, html):
+        soup = BeautifulSoup(html, 'lxml')
+        empty_rows = soup.find_all('tr', {'class': 'empty_filter'})
+        empty_positions = []
+        if empty_rows is None:
+            return empty_positions
+        for empty_row in empty_rows:
+            empty_positions.append(empty_row.find('td', {'position'}).text)
+
+        return empty_positions
 
 
 
@@ -1016,7 +1030,7 @@ class OGame(object):
         building_url = building_type
         if building_type == 'supply':
             building_url = 'resources'
-            
+
         html = self.session.get(self.get_url(building_url, {'cp': planet_id})).content
         soup = BeautifulSoup(html, 'lxml')
         is_free = soup.find('div', {'class': '{}{}'.format(building_type, building)}).find('a', {'class': 'fastBuild'})
@@ -1052,94 +1066,14 @@ class OGame(object):
         abandon = form.find('input', {'name': 'abandon'}).get('value')
         token = form.find('input', {'name': 'token'}).get('value')
         payload = {'abandon': abandon,
-                  'token': token,
-                  'password': self.password} 
+                   'token': token,
+                   'password': self.password}
         headers = {'X-Requested-With': 'XMLHttpRequest'}
         check_password = self.session.post(self.get_url('checkPassword'), headers=headers, data=payload).content
         jo = json.loads(check_password)
         new_token = jo['newToken']
         delete_payload = {'abandon': abandon,
-                         'token': new_token,
-                         'password': self.password}
-        
-        delete_action = self.session.post(self.get_url('planetGiveup'), headers=headers, data=delete_payload).content   
+                          'token': new_token,
+                          'password': self.password}
 
-
-
-
- 
-    def Consommation(self, type, batiment, lvl):
-
-        """ Retourne la consommation du batiment du level lvl + 1 """
-        energieLvl = constants.Formules[type][batiment]['consommation'][0] * lvl * (
-        constants.Formules[type][batiment]['consommation'][1] ** lvl)
-        energieNextLvl = constants.Formules[type][batiment]['consommation'][0] * (lvl + 1) * (
-        constants.Formules[type][batiment]['consommation'][1] ** (lvl + 1))
-        return math.floor(energieNextLvl - energieLvl)
-
-    def building_cost(self, type, batiment, lvl):
-        """ Retourne le cout d'un batiment lvl + 1 """
-        cost = {}
-        cost['metal'] = int(math.floor(constants.Formules[type][batiment]['cout']['Metal'][0] *
-                                       constants.Formules[type][batiment]['cout']['Metal'][1] ** (lvl - 1)))
-        cost['crystal'] = int(math.floor(constants.Formules[type][batiment]['cout']['Crystal'][0] *
-                                         constants.Formules[type][batiment]['cout']['Crystal'][1] ** (lvl - 1)))
-        cost['deuterium'] = int(math.floor(constants.Formules[type][batiment]['cout']['Deuterium'][0] *
-                                           constants.Formules[type][batiment]['cout']['Deuterium'][1] ** (lvl - 1)))
-        return cost
-
-
-    def getProduction(self, type, batiment, lvl):
-        """ Retourne le cout d'un batiment lvl + 1 """
-        production = 0
-        production = (self.universe_speed * constants.Formules[type][batiment]['production'][0] * lvl *
-                      (constants.Formules[type][batiment]['production'][1] ** lvl) ) + \
-                     self.universe_speed * constants.Formules[type][batiment]['production'][0]
-
-
-        return production
-
-
-    def storageSize(self, type, batiment, lvl):
-        capacity = -1
-        capacity = 5000 * int(math.floor(2.5 * (math.e ** (lvl * 20 / 33))))
-        return capacity
-
-
-    def galaxy_infos(self, galaxy, system):
-        html = self.galaxy_content(galaxy, system)['galaxy']
-        soup = BeautifulSoup(html, 'lxml')
-        rows = soup.findAll('tr', {'class': 'row'})
-        res = []
-        for row in rows:
-            if 'empty_filter' not in row.get('class'):
-                tooltips = row.findAll('div', {'class': 'htmlTooltip'})
-                planet_tooltip = tooltips[0]
-                planet_name = planet_tooltip.find('h1').find('span').text
-                planet_url = planet_tooltip.find('img').get('src')
-                coords_raw = planet_tooltip.find('span', {'id': 'pos-planet'}).text
-                coords = re.search(r'\[(\d+):(\d+):(\d+)\]', coords_raw)
-                galaxy, system, position = coords.groups()
-                planet_infos = {}
-                planet_infos['name'] = planet_name
-                planet_infos['img'] = planet_url
-                planet_infos['coordinate'] = {}
-                planet_infos['coordinate']['galaxy'] = int(galaxy)
-                planet_infos['coordinate']['system'] = int(system)
-                planet_infos['coordinate']['position'] = int(position)
-                if len(tooltips) > 1:
-                    player_tooltip = tooltips[1]
-                    player_id_raw = player_tooltip.get('id')
-                    player_id = int(re.search(r'player(\d+)', player_id_raw).groups()[0])
-                    player_name = player_tooltip.find('h1').find('span').text
-                    player_rank = parse_int(player_tooltip.find('li', {'class': 'rank'}).find('a').text)
-                else:
-                    player_id = None
-                    player_name = row.find('td', {'class': 'playername'}).find('span').text.strip()
-                    player_rank = None
-                planet_infos['player'] = {}
-                planet_infos['player']['id'] = player_id
-                planet_infos['player']['name'] = player_name
-                planet_infos['player']['rank'] = player_rank
-                res.append(planet_infos)
-        return res
+        delete_action = self.session.post(self.get_url('planetGiveup'), headers=headers, data=delete_payload).content
