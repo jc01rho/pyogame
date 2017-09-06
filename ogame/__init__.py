@@ -872,7 +872,10 @@ class OGame(object):
         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
         return True
 
-    def send_minifleet_spy(self, where, ship_count, token):
+    def send_minifleet_spy(self, where, ship_count):
+        html_for_token = self.session.get(self.get_url('galaxy')).content
+        token = self.get_minifleet_token(html_for_token)
+
         headers = {'X-Requested-With': 'XMLHttpRequest'}
         payload = {'mission': 6,
                    'galaxy': where.get('galaxy'),
@@ -880,9 +883,10 @@ class OGame(object):
                    'position': where.get('position'),
                    'type': 1,
                    'shipCount': ship_count,
-                   'token': token,
+                   'token': token[0],
                    'speed': 10
                    }
+
         res = self.session.post(self.get_url('minifleet'), params={'ajax': 1}, headers=headers, data=payload).content
         try:
             json_response = json.loads(res)
