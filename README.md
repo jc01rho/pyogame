@@ -1,5 +1,7 @@
 ![](http://images2.wikia.nocookie.net/__cb20101218084357/ogame/images/c/c9/Logo.png)
 
+[![Build Status](https://travis-ci.org/jc01rho/pyogame.svg?branch=develop)](https://travis-ci.org/jc01rho/pyogame)
+
 [![Issue Count](https://codeclimate.com/github/jc01rho/pyogame/badges/issue_count.svg)](https://codeclimate.com/github/jc01rho/pyogame)
 
 ## Intro
