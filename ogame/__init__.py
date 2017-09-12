@@ -17,7 +17,6 @@ from ogame.errors import BAD_UNIVERSE_NAME, BAD_DEFENSE_ID, NOT_LOGGED, BAD_CRED
 from bs4 import BeautifulSoup
 from dateutil import tz
 
-miniFleetToken = None
 proxies = {
     'http': 'socks5://127.0.0.1:9050',
     'https': 'socks5://127.0.0.1:9050'
@@ -958,9 +957,10 @@ class OGame(object):
         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
         return True
 
+    def send_minifleet_spy(self, where, ship_count):
+        html_for_token = self.session.get(self.get_url('galaxy')).content
+        token = self.get_minifleet_token(html_for_token)
 
-
-    def send_minifleet_spy(self, where, ship_count, token):
         headers = {'X-Requested-With': 'XMLHttpRequest'}
         payload = {'mission': 6,
                    'galaxy': where.get('galaxy'),
@@ -968,9 +968,10 @@ class OGame(object):
                    'position': where.get('position'),
                    'type': 1,
                    'shipCount': ship_count,
-                   'token': token,
+                   'token': token[0],
                    'speed': 10
                    }
+
         res = self.session.post(self.get_url('minifleet'), params={'ajax': 1}, headers=headers, data=payload).content
         try:
             json_response = json.loads(res)
