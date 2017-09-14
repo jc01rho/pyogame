@@ -634,7 +634,7 @@ class OGame(object):
             elif mission_type == 6:
                 total_fleet = event.find('td', {'class': 'icon_movement'})
                 if total_fleet is None:
-                    pass
+                    None
                 else:
                     total_fleet = total_fleet.find('span')['title']
                     soup_fleet = BeautifulSoup(total_fleet, 'lxml')
@@ -654,6 +654,8 @@ class OGame(object):
 
             dest_moon = event.find('td', {'class': 'destFleet'}).find('figure',
                                                                       {'class': 'planetIcon moon'}) is not None
+
+            attack.update(({'is_toMoon': dest_moon}))
             dest_coords = event.find('td', {'class': 'destCoords'}).text.strip()
             coords = re.search(r'\[(\d+):(\d+):(\d+)\]', dest_coords)
             galaxy, system, position = coords.groups()
