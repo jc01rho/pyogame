@@ -1112,6 +1112,16 @@ class OGame(object):
         return cost
 
 
+    def building_time(self, cost ,robotics, nano, speed ):
+        costSum = cost['metal'] + cost['crystal']
+        buildTime = (costSum) / (2500 * (1 + robotics
+                                 * (2 **nano) * speed) )
+        #buildCost = self.OGame.building_cost('Storage', 'metal_storage', building['metal_storage'] + 1)
+        #Time hours = Metal + crystal /   (  2500 * ( 1+ robotics * 2^nano * serverspeed )
+        return buildTime
+
+
+
     def getProduction(self, type, batiment, lvl):
         """ Retourne le cout d'un batiment lvl + 1 """
         production = 0
