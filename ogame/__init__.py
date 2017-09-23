@@ -1097,4 +1097,97 @@ class OGame(object):
                           'token': new_token,
                           'password': self.password}
 
-        delete_action = self.session.post(self.get_url('planetGiveup'), headers=headers, data=delete_payload).content
+                         'token': new_token,
+                         'password': self.password}
+        
+        delete_action = self.session.post(self.get_url('planetGiveup'), headers=headers, data=delete_payload).content   
+
+
+
+
+ 
+    def Consommation(self, type, batiment, lvl):
+
+        """ Retourne la consommation du batiment du level lvl + 1 """
+        energieLvl = constants.Formules[type][batiment]['consommation'][0] * lvl * (
+        constants.Formules[type][batiment]['consommation'][1] ** lvl)
+        energieNextLvl = constants.Formules[type][batiment]['consommation'][0] * (lvl + 1) * (
+        constants.Formules[type][batiment]['consommation'][1] ** (lvl + 1))
+        return math.floor(energieNextLvl - energieLvl)
+
+    def building_cost(self, type, batiment, lvl):
+        """ Retourne le cout d'un batiment lvl + 1 """
+        cost = {}
+        cost['metal'] = int(math.floor(constants.Formules[type][batiment]['cout']['Metal'][0] *
+                                       constants.Formules[type][batiment]['cout']['Metal'][1] ** (lvl - 1)))
+        cost['crystal'] = int(math.floor(constants.Formules[type][batiment]['cout']['Crystal'][0] *
+                                         constants.Formules[type][batiment]['cout']['Crystal'][1] ** (lvl - 1)))
+        cost['deuterium'] = int(math.floor(constants.Formules[type][batiment]['cout']['Deuterium'][0] *
+                                           constants.Formules[type][batiment]['cout']['Deuterium'][1] ** (lvl - 1)))
+        return cost
+
+
+    def building_time(self, cost ,robotics, nano, speed ):
+        costSum = cost['metal'] + cost['crystal']
+        buildTime = (costSum) / (2500 * (1 + robotics
+                                 * (2 **nano) * speed) )
+        #buildCost = self.OGame.building_cost('Storage', 'metal_storage', building['metal_storage'] + 1)
+        #Time hours = Metal + crystal /   (  2500 * ( 1+ robotics * 2^nano * serverspeed )
+        return buildTime
+
+
+
+    def getProduction(self, type, batiment, lvl):
+        """ Retourne le cout d'un batiment lvl + 1 """
+        production = 0
+        production = (self.universe_speed * constants.Formules[type][batiment]['production'][0] * lvl *
+                      (constants.Formules[type][batiment]['production'][1] ** lvl) ) + \
+                     self.universe_speed * constants.Formules[type][batiment]['production'][0]
+
+
+        return production
+
+
+    def storageSize(self, type, batiment, lvl):
+        capacity = -1
+        capacity = 5000 * int(math.floor(2.5 * (math.e ** (lvl * 20 / 33))))
+        return capacity
+
+
+    def galaxy_infos(self, galaxy, system):
+        html = self.galaxy_content(galaxy, system)['galaxy']
+        soup = BeautifulSoup(html, 'lxml')
+        rows = soup.findAll('tr', {'class': 'row'})
+        res = []
+        for row in rows:
+            if 'empty_filter' not in row.get('class'):
+                tooltips = row.findAll('div', {'class': 'htmlTooltip'})
+                planet_tooltip = tooltips[0]
+                planet_name = planet_tooltip.find('h1').find('span').text
+                planet_url = planet_tooltip.find('img').get('src')
+                coords_raw = planet_tooltip.find('span', {'id': 'pos-planet'}).text
+                coords = re.search(r'\[(\d+):(\d+):(\d+)\]', coords_raw)
+                galaxy, system, position = coords.groups()
+                planet_infos = {}
+                planet_infos['name'] = planet_name
+                planet_infos['img'] = planet_url
+                planet_infos['coordinate'] = {}
+                planet_infos['coordinate']['galaxy'] = int(galaxy)
+                planet_infos['coordinate']['system'] = int(system)
+                planet_infos['coordinate']['position'] = int(position)
+                if len(tooltips) > 1:
+                    player_tooltip = tooltips[1]
+                    player_id_raw = player_tooltip.get('id')
+                    player_id = int(re.search(r'player(\d+)', player_id_raw).groups()[0])
+                    player_name = player_tooltip.find('h1').find('span').text
+                    player_rank = parse_int(player_tooltip.find('li', {'class': 'rank'}).find('a').text)
+                else:
+                    player_id = None
+                    player_name = row.find('td', {'class': 'playername'}).find('span').text.strip()
+                    player_rank = None
+                planet_infos['player'] = {}
+                planet_infos['player']['id'] = player_id
+                planet_infos['player']['name'] = player_name
+                planet_infos['player']['rank'] = player_rank
+                res.append(planet_infos)
+        return res
