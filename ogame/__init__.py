@@ -633,7 +633,7 @@ class OGame(object):
             elif mission_type == 6:
                 total_fleet = event.find('td', {'class': 'icon_movement'})
                 if total_fleet is None:
-                    None
+                    pass
                 else:
                     total_fleet = total_fleet.find('span')['title']
                     soup_fleet = BeautifulSoup(total_fleet, 'lxml')
