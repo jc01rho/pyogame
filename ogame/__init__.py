@@ -601,8 +601,7 @@ class OGame(object):
             elif mission_type == 6:
                 total_fleet = event.find('td', {'class': 'icon_movement'})
                 if total_fleet is None:
-                    from send_message import send_message
-                    send_message('Nos espian y no podemos obtener la flota')
+                    pass
                 else:
                     total_fleet = total_fleet.find('span')['title']
                     soup_fleet = BeautifulSoup(total_fleet, 'lxml')
