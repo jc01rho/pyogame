@@ -55,18 +55,6 @@ Facilities = {'AllianceDepot': 34,
               'space_dock': 36
               }
 
-              # NL
-              'Alliantiehanger': 34,
-              'Robotfabriek': 14,
-              'Werf': 21,
-              'Onderzoekslab': 31,
-              'Raketsilo': 44,
-              'Nanorobotfabriek': 15,
-              'Terravormer': 33,
-              'Ruimtewerf': 36,
-
-              # FR
-              'Usinederobots': 14}
 
 
 
@@ -99,8 +87,6 @@ Ships = {'SmallCargo': 202,
          'Battlecruiser': 215
          }
 
-         # FR
-         'Grandtransporteur': 203}
 
 Research = {'EspionageTechnology': 106,
             'ComputerTechnology': 108,
