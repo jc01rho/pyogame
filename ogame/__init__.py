@@ -1,3 +1,4 @@
+# coding: utf-8
 import datetime
 import json
 import math
@@ -828,7 +829,7 @@ class OGame(object):
                             quantity = parse_int(link.text)
                             img = td_element.find('img')
                             alt = img['alt']
-                            short_name = ''.join(alt.split())
+                            short_name = unicode(''.join(alt.split())).encode('utf-8')
                             code = get_code(short_name)
                             tmp.append({'name': short_name, 'code': code, 'quantity': quantity})
                 res[names[idx]] = tmp
