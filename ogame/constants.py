@@ -157,6 +157,11 @@ Missions = {'Attack': 1,
 
 Formules = {
     'Buildings': {
+        'nano_factory': {
+            'cout': {
+                'Metal': [1000000, 2], 'Crystal': [500000, 2], 'Deuterium': [100000, 2]
+            }
+        },
         'metal_mine': {
             'cout': {
                 'Metal': [60, 1.5], 'Crystal': [15, 1.5], 'Deuterium': [0, 0]
