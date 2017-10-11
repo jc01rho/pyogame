@@ -1,3 +1,4 @@
+# coding: utf-8
 import datetime
 import json
 import math
@@ -17,6 +18,7 @@ from ogame.errors import BAD_UNIVERSE_NAME, BAD_DEFENSE_ID, NOT_LOGGED, BAD_CRED
 from bs4 import BeautifulSoup
 from dateutil import tz
 
+miniFleetToken = None
 proxies = {
     'http': 'socks5://127.0.0.1:9050',
     'https': 'socks5://127.0.0.1:9050'
@@ -827,7 +829,7 @@ class OGame(object):
                             quantity = parse_int(link.text)
                             img = td_element.find('img')
                             alt = img['alt']
-                            short_name = ''.join(alt.split())
+                            short_name = unicode(''.join(alt.split())).encode('utf-8')
                             code = get_code(short_name)
                             tmp.append({'name': short_name, 'code': code, 'quantity': quantity})
                 res[names[idx]] = tmp
@@ -896,6 +898,37 @@ class OGame(object):
         payload = {'messageId': message_id, 'action': 103, 'ajax': 1}
         url = self.get_url('messages')
         res = self.session.post(url, data=payload, headers=headers).content.decode('utf8')
+
+        return res
+
+    def send_spy(self, galaxy, system, position, ship_count):
+        headers = {'X-Requested-With': 'XMLHttpRequest'}
+        payload = {'mission': 6,
+                   'type': 1,
+                   'token': '',
+                   'galaxy': galaxy,
+                   'system': system,
+                   'position': position,
+                   'shipCount': ship_count,
+                   'speed': 10}
+
+        token = ''
+        if miniFleetToken is None or miniFleetToken == '':
+            first_res = self.session.get(self.get_url('overview')).content
+            moon_soup = BeautifulSoup(first_res, 'html.parser')
+            data = moon_soup.find_all('script', {'type': 'text/javascript'})
+            parameter = 'miniFleetToken'
+            for d in data:
+                d = d.text
+                if 'var miniFleetToken=' in d:
+                    regex_string = 'var {parameter}="(.*?)"'.format(parameter=parameter)
+                    token = re.findall(regex_string, d)
+        else:
+            token = miniFleetToken
+
+        url = self.get_url('minifleet', {'ajax': 1})
+        payload['token'] = token
+        res = self.session.post(url, data=payload, headers=headers).content.decode('utf8')
         return res
 
 
@@ -958,10 +991,9 @@ class OGame(object):
         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
         return True
 
-    def send_minifleet_spy(self, where, ship_count):
-        html_for_token = self.session.get(self.get_url('galaxy')).content
-        token = self.get_minifleet_token(html_for_token)
 
+
+    def send_minifleet_spy(self, where, ship_count, token):
         headers = {'X-Requested-With': 'XMLHttpRequest'}
         payload = {'mission': 6,
                    'galaxy': where.get('galaxy'),
@@ -969,10 +1001,9 @@ class OGame(object):
                    'position': where.get('position'),
                    'type': 1,
                    'shipCount': ship_count,
-                   'token': token[0],
+                   'token': token,
                    'speed': 10
                    }
-
         res = self.session.post(self.get_url('minifleet'), params={'ajax': 1}, headers=headers, data=payload).content
         try:
             json_response = json.loads(res)
@@ -1032,7 +1063,7 @@ class OGame(object):
         building_url = building_type
         if building_type == 'supply':
             building_url = 'resources'
-
+            
         html = self.session.get(self.get_url(building_url, {'cp': planet_id})).content
         soup = BeautifulSoup(html, 'lxml')
         is_free = soup.find('div', {'class': '{}{}'.format(building_type, building)}).find('a', {'class': 'fastBuild'})
@@ -1068,14 +1099,13 @@ class OGame(object):
         abandon = form.find('input', {'name': 'abandon'}).get('value')
         token = form.find('input', {'name': 'token'}).get('value')
         payload = {'abandon': abandon,
-                   'token': token,
-                   'password': self.password}
+                  'token': token,
+                  'password': self.password} 
         headers = {'X-Requested-With': 'XMLHttpRequest'}
         check_password = self.session.post(self.get_url('checkPassword'), headers=headers, data=payload).content
         jo = json.loads(check_password)
         new_token = jo['newToken']
         delete_payload = {'abandon': abandon,
-
                          'token': new_token,
                          'password': self.password}
         
@@ -1104,6 +1134,16 @@ class OGame(object):
         cost['deuterium'] = int(math.floor(constants.Formules[type][batiment]['cout']['Deuterium'][0] *
                                            constants.Formules[type][batiment]['cout']['Deuterium'][1] ** (lvl - 1)))
         return cost
+
+
+    def building_time(self, cost ,robotics, nano, speed ):
+        costSum = cost['metal'] + cost['crystal']
+        buildTime = (costSum) / (2500 * (1 + robotics
+                                 * (2 **nano) * speed) )
+        #buildCost = self.OGame.building_cost('Storage', 'metal_storage', building['metal_storage'] + 1)
+        #Time hours = Metal + crystal /   (  2500 * ( 1+ robotics * 2^nano * serverspeed )
+        return buildTime
+
 
 
     def getProduction(self, type, batiment, lvl):

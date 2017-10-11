@@ -1,13 +1,20 @@
 # coding: utf-8
 
 Buildings = {'MetalMine': 1,
+             'metal_mine': 1,
              'CrystalMine': 2,
+             'crystal_mine': 2,
              'DeuteriumSynthesizer': 3,
+             'deuterium_synthesizer': 3,
              'SolarPlant': 4,
+             'solar_plant':4,
              'FusionReactor': 12,
              'MetalStorage': 22,
+             'metal_storage': 22,
              'CrystalStorage': 23,
+             'crystal_storage': 23,
              'DeuteriumTank': 24,
+             'deuterium_tank': 24,
              'ShieldedMetalDen': 25,
              'UndergroundCrystalDen': 26,
              'SeabedDeuteriumDen': 27,
@@ -28,7 +35,9 @@ Buildings = {'MetalMine': 1,
 Facilities = {'AllianceDepot': 34,
               'RoboticsFactory': 14,
               'Shipyard': 21,
+              'shipyard': 21,
               'ResearchLab': 31,
+              'research_lab': 31,
               'MissileSilo': 44,
               'NaniteFactory': 15,
               'Terraformer': 33,
@@ -45,6 +54,7 @@ Facilities = {'AllianceDepot': 34,
               'terraformer': 33,
               'space_dock': 36
               }
+
 
 
 
@@ -143,6 +153,11 @@ Missions = {'Attack': 1,
 
 Formules = {
     'Buildings': {
+        'nano_factory': {
+            'cout': {
+                'Metal': [1000000, 2], 'Crystal': [500000, 2], 'Deuterium': [100000, 2]
+            }
+        },
         'metal_mine': {
             'cout': {
                 'Metal': [60, 1.5], 'Crystal': [15, 1.5], 'Deuterium': [0, 0]
