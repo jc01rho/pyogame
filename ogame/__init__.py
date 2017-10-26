@@ -11,7 +11,6 @@ import json
 import pickle
 import random
 
-
 from ogame import constants
 from ogame.errors import BAD_UNIVERSE_NAME, BAD_DEFENSE_ID, NOT_LOGGED, BAD_CREDENTIALS, CANT_PROCESS, BAD_BUILDING_ID, \
     BAD_SHIP_ID, BAD_RESEARCH_ID
@@ -251,9 +250,10 @@ class OGame(object):
         res['total'] = parse_int(infos.group(3))
         res['honour_points'] = parse_int(re.search(r'textContent\[9\]="([^"]+)"', str(html)).group(1))
         res['planet_ids'] = self.get_planet_ids(html)
-        res['current_planets'] = re.search(r'(\d+)/(\d+)',BeautifulSoup(html, 'lxml').find('p','textCenter').text).group(1)
+        res['current_planets'] = re.search(r'(\d+)/(\d+)',
+                                           BeautifulSoup(html, 'lxml').find('p', 'textCenter').text).group(1)
         res['max_planets'] = re.search(r'(\d+)/(\d+)',
-                                           BeautifulSoup(html, 'lxml').find('p', 'textCenter').text).group(2)
+                                       BeautifulSoup(html, 'lxml').find('p', 'textCenter').text).group(2)
         return res
 
     def get_resources_buildings(self, planet_id):
@@ -418,6 +418,53 @@ class OGame(object):
                    'type': defense_id}
         print("def post")
         self.session.post(url, data=payload)
+
+    def get_shipyard_queueSize(self, planet_id):
+        """Build a ship unit."""
+
+        url = self.get_url('shipyard', {'cp': planet_id})
+
+        res = self.session.get(url).content
+        if not self.is_logged(res):
+            raise NOT_LOGGED
+        soup = BeautifulSoup(res, 'lxml')
+        items = soup.find_all("li", {"class": "tooltip"})
+        return items.__len__()
+
+    def get_shipyard_queue(self, planet_id):
+        """Build a ship unit."""
+
+        url = self.get_url('shipyard', {'cp': planet_id})
+
+        res = self.session.get(url).content
+        if not self.is_logged(res):
+            raise NOT_LOGGED
+        soup = BeautifulSoup(res, 'lxml')
+        items = soup.find_all("li", {"class": "tooltip"})
+        resultList = []
+
+        nowOnItems = soup.find("td", {"class": "building tooltip"})
+        items.insert(0, nowOnItems)
+
+        for item in items:
+            resultDict = {}
+
+            itemCount = item.span.string if item.span != None else item.div.string
+            itemID = item.a.get('ref')
+
+            if itemID is None:
+                itemID = item.a.get('href').split('openTech=')[1]
+            resultDict.update({'id': itemID})
+            resultDict.update({'count': itemCount})
+
+            if item.attrs['class'][0] == "building":
+                resultDict.update({'onProgress': True})
+            else:
+                resultDict.update({'onProgress': False})
+
+            resultList.append(resultDict)
+
+        return resultList
 
     def build_ships(self, planet_id, ship_id, nbr):
         """Build a ship unit."""
@@ -590,9 +637,7 @@ class OGame(object):
             mission_type = int(event['data-mission-type'])
 
             if mission_type not in [1, 2, 9, 6]:
-
                 continue
-
 
             if mission_type not in [1, 2]:
                 if checkSpyAlso and mission_type not in [6]:
@@ -601,7 +646,6 @@ class OGame(object):
                     continue
                 else:
                     None
-
 
             attack = {}
             attack.update({'mission_type': mission_type})
@@ -657,14 +701,12 @@ class OGame(object):
             arrival_time = self.get_datetime_from_time(hour, minute, second)
             attack.update({'arrival_time': arrival_time})
 
-            #todo Mn replace 제대로
-            #attack.update({'detailsFleet': int(event.find('td', {'class': 'detailsFleet'}).text.replace(".","").replace("Mn","").strip())})
-            try :
+            # todo Mn replace 제대로
+            # attack.update({'detailsFleet': int(event.find('td', {'class': 'detailsFleet'}).text.replace(".","").replace("Mn","").strip())})
+            try:
                 attack.update({'detailsFleet': int(event.find('td', {'class': 'detailsFleet'}).text.strip())})
             except ValueError as ve:
                 attack.update({'detailsFleet': "(?)"})
-
-
 
             if mission_type == 1:
                 attacker_id = event.find('a', {'class': 'sendMail'})['data-playerid']
@@ -869,8 +911,6 @@ class OGame(object):
 
         return empty_positions
 
-
-
     def get_spy_reports(self):
         headers = {'X-Requested-With': 'XMLHttpRequest'}
         payload = {'tab': 20,
@@ -917,7 +957,6 @@ class OGame(object):
         res = self.session.post(url, data=payload, headers=headers).content.decode('utf8')
         return res
 
-
     def send_spy(self, galaxy, system, position, ship_count):
         headers = {'X-Requested-With': 'XMLHttpRequest'}
         payload = {'mission': 6,
@@ -948,7 +987,6 @@ class OGame(object):
         res = self.session.post(url, data=payload, headers=headers).content.decode('utf8')
         return res
 
-
     def get_flying_fleets(self):
         url = self.get_url('movement')
         res = self.session.get(url).content
@@ -971,13 +1009,10 @@ class OGame(object):
         fleet_dict = {'current_fleets': current_fleets, 'max_fleets': max_fleets, 'available_fleets': available_fleets}
         return fleet_dict
 
-
     def jumpgate_execute(self):
         res = self.session.get(self.get_url('jumpgate_execute')).content
         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
         return True
-
-
 
     def send_minifleet_spy(self, where, ship_count, token):
         headers = {'X-Requested-With': 'XMLHttpRequest'}
@@ -1049,7 +1084,7 @@ class OGame(object):
         building_url = building_type
         if building_type == 'supply':
             building_url = 'resources'
-            
+
         html = self.session.get(self.get_url(building_url, {'cp': planet_id})).content
         soup = BeautifulSoup(html, 'lxml')
         is_free = soup.find('div', {'class': '{}{}'.format(building_type, building)}).find('a', {'class': 'fastBuild'})
@@ -1085,29 +1120,25 @@ class OGame(object):
         abandon = form.find('input', {'name': 'abandon'}).get('value')
         token = form.find('input', {'name': 'token'}).get('value')
         payload = {'abandon': abandon,
-                  'token': token,
-                  'password': self.password} 
+                   'token': token,
+                   'password': self.password}
         headers = {'X-Requested-With': 'XMLHttpRequest'}
         check_password = self.session.post(self.get_url('checkPassword'), headers=headers, data=payload).content
         jo = json.loads(check_password)
         new_token = jo['newToken']
         delete_payload = {'abandon': abandon,
-                         'token': new_token,
-                         'password': self.password}
-        
-        delete_action = self.session.post(self.get_url('planetGiveup'), headers=headers, data=delete_payload).content   
+                          'token': new_token,
+                          'password': self.password}
 
+        delete_action = self.session.post(self.get_url('planetGiveup'), headers=headers, data=delete_payload).content
 
-
-
- 
     def Consommation(self, type, batiment, lvl):
 
         """ Retourne la consommation du batiment du level lvl + 1 """
         energieLvl = constants.Formules[type][batiment]['consommation'][0] * lvl * (
-        constants.Formules[type][batiment]['consommation'][1] ** lvl)
+            constants.Formules[type][batiment]['consommation'][1] ** lvl)
         energieNextLvl = constants.Formules[type][batiment]['consommation'][0] * (lvl + 1) * (
-        constants.Formules[type][batiment]['consommation'][1] ** (lvl + 1))
+            constants.Formules[type][batiment]['consommation'][1] ** (lvl + 1))
         return math.floor(energieNextLvl - energieLvl)
 
     def building_cost(self, type, batiment, lvl):
@@ -1121,33 +1152,27 @@ class OGame(object):
                                            constants.Formules[type][batiment]['cout']['Deuterium'][1] ** (lvl - 1)))
         return cost
 
-
-    def building_time(self, cost ,robotics, nano, speed ):
+    def building_time(self, cost, robotics, nano, speed):
         costSum = cost['metal'] + cost['crystal']
         buildTime = (costSum) / (2500 * (1 + robotics
-                                 * (2 **nano) * speed) )
-        #buildCost = self.OGame.building_cost('Storage', 'metal_storage', building['metal_storage'] + 1)
-        #Time hours = Metal + crystal /   (  2500 * ( 1+ robotics * 2^nano * serverspeed )
+                                         * (2 ** nano) * speed))
+        # buildCost = self.OGame.building_cost('Storage', 'metal_storage', building['metal_storage'] + 1)
+        # Time hours = Metal + crystal /   (  2500 * ( 1+ robotics * 2^nano * serverspeed )
         return buildTime
-
-
 
     def getProduction(self, type, batiment, lvl):
         """ Retourne le cout d'un batiment lvl + 1 """
         production = 0
         production = (self.universe_speed * constants.Formules[type][batiment]['production'][0] * lvl *
-                      (constants.Formules[type][batiment]['production'][1] ** lvl) ) + \
+                      (constants.Formules[type][batiment]['production'][1] ** lvl)) + \
                      self.universe_speed * constants.Formules[type][batiment]['production'][0]
 
-
         return production
-
 
     def storageSize(self, type, batiment, lvl):
         capacity = -1
         capacity = 5000 * int(math.floor(2.5 * (math.e ** (lvl * 20 / 33))))
         return capacity
-
 
     def galaxy_infos(self, galaxy, system):
         html = self.galaxy_content(galaxy, system)['galaxy']
