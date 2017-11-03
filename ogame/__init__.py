@@ -443,10 +443,16 @@ class OGame(object):
         resultList = []
 
         nowOnItems = soup.find("td", {"class": "building tooltip"})
+        if nowOnItems == None :
+            return  resultList
+
+
         items.insert(0, nowOnItems)
 
         for item in items:
             resultDict = {}
+            if item == None :
+                continue;
 
             itemCount = item.span.string if item.span != None else item.div.string
             itemID = item.a.get('ref')
