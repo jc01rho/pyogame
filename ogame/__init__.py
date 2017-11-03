@@ -157,7 +157,7 @@ class OGame(object):
                    'uni': self.server_url,
                    'login': self.username,
                    'pass': self.password}
-        time.sleep(random.uniform(1, 5))
+        time.sleep(random.uniform(15, 120))
         res = self.session.post(self.get_url('login'), data=payload).content
         soup = BeautifulSoup(res, 'lxml')
         session_found = soup.find('meta', {'name': 'ogame-session'})
