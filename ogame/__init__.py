@@ -31,10 +31,10 @@ def get_ip():
 
 
 def parse_int(text):
-	try:
-		return int(text.replace('.', '').replace(',', '').strip())
-	except ValueError:
-		return 0
+    try:
+        return int(text.replace('.', '').replace(',', '').strip())
+    except ValueError:
+        return 0
 
 
 def for_all_methods(decorator):
@@ -157,7 +157,7 @@ class OGame(object):
                    'uni': self.server_url,
                    'login': self.username,
                    'pass': self.password}
-        time.sleep(random.uniform(15, 120))
+        time.sleep(random.uniform(5, 10))
         res = self.session.post(self.get_url('login'), data=payload).content
         soup = BeautifulSoup(res, 'lxml')
         session_found = soup.find('meta', {'name': 'ogame-session'})
@@ -443,15 +443,14 @@ class OGame(object):
         resultList = []
 
         nowOnItems = soup.find("td", {"class": "building tooltip"})
-        if nowOnItems == None :
-            return  resultList
-
+        if nowOnItems == None:
+            return resultList
 
         items.insert(0, nowOnItems)
 
         for item in items:
             resultDict = {}
-            if item == None :
+            if item == None:
                 continue;
 
             itemCount = item.span.string if item.span != None else item.div.string
@@ -601,7 +600,8 @@ class OGame(object):
             if not reversal_span:
                 continue
             fleet_id = int(reversal_span.get('ref'))
-            if dest == '[{}:{}:{}]'.format(where['galaxy'], where['system'], where['position']) and origin == '[{}]'.format(origin_coords):
+            if dest == '[{}:{}:{}]'.format(where['galaxy'], where['system'],
+                                           where['position']) and origin == '[{}]'.format(origin_coords):
                 matches.append(fleet_id)
         if matches:
             return max(matches)
@@ -781,7 +781,7 @@ class OGame(object):
             raise NOT_LOGGED
         soup = BeautifulSoup(res, 'lxml')
         link = soup.find('div', {'id': 'planet-{}'.format(planet_id)})
-        if  link is not None: #is a planet pid
+        if link is not None:  # is a planet pid
             link = link.find('a')
         else:  # is a moon pid
             link = soup.find('div', {'id': 'planetList'})
