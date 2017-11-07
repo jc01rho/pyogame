@@ -1218,6 +1218,8 @@ class OGame(object):
                 elif len(tooltips) > 1:
                     player_tooltip = tooltips[1]
                     player_id_raw = player_tooltip.get('id')
+                    if "player" not in player_id_raw:
+                        continue
                     player_id = int(re.search(r'player(\d+)', player_id_raw).groups()[0])
                     player_name = player_tooltip.find('h1').find('span').text
                     player_rank = parse_int(player_tooltip.find('li', {'class': 'rank'}).find('a').text)
