@@ -899,10 +899,9 @@ class OGame(object):
         res = self.session.post(url, data=payload, headers=headers).content.decode('utf8')
         try:
             obj = json.loads(res)
-            galaxy_view = obj['galaxy']
         except ValueError:
             raise NOT_LOGGED
-        return galaxy_view
+        return obj
 
     def find_empty_slots(self, html):
         soup = BeautifulSoup(html, 'lxml')
