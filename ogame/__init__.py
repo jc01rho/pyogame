@@ -1029,3 +1029,11 @@ class OGame(object):
                           'password': self.password}
 
         delete_action = self.session.post(self.get_url('planetGiveup'), headers=headers, data=delete_payload).content
+
+    def change_player_name(self, new_name):
+	    headers = {'X-Requested-With': 'XMLHttpRequest'}
+	    modal_content = self.session.get(self.get_url('changenick'), headers=headers).content
+	    payload = {'nick': new_name,
+                    'pass': self.password,
+                    'ajax': 1}
+	    self.session.post(self.get_url('changenick'), headers=headers, payload=payload)
