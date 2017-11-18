@@ -1055,3 +1055,19 @@ class OGame(object):
             alliance_data['alliance_name'] = alliance_name
 
         return alliance_data
+
+    def get_alliance_requests(self):
+        payload = {'ajax': 1}
+        headers = {'X-Requested-With': 'XMLHttpRequest'}
+        html = self.session.post(self.get_url('allianceApplications'), headers=headers, data=payload).content
+        soup = BeautifulSoup(html, 'lxml')
+        actions = soup.find_all('th', {'class': 'action'})
+        for action in actions:
+            url = self.get_url('allianceApplications', {'action': 3})
+            rel = action.attrs['rel']
+            form = (action.attrs['rev']).replace('form_', '')
+            token = action.attrs['token']
+            custom_payload = {'applicationId': form, 'text': "", 'token': token}
+            content = self.session.post(url, headers=headers, data=custom_payload)
+
+        return []
