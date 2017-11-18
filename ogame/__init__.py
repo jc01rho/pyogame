@@ -1001,7 +1001,7 @@ class OGame(object):
             return False
 
     def alliance_apply(self, alliance_id, message):
-        url = self.get_url('allianceWriteApplication', {'action': 19})
+        url = self.get_url('allianceWriteApplication', {'action': 1})
         payload = {'text': message,
                    'appliedAllyId': alliance_id}
         headers = {'X-Requested-With': 'XMLHttpRequest'}
