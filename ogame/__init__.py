@@ -1063,11 +1063,12 @@ class OGame(object):
         soup = BeautifulSoup(html, 'lxml')
         actions = soup.find_all('th', {'class': 'action'})
         for action in actions:
-            url = self.get_url('allianceApplications', {'action': 3})
             rel = action.attrs['rel']
-            form = (action.attrs['rev']).replace('form_', '')
-            token = action.attrs['token']
-            custom_payload = {'applicationId': form, 'text': "", 'token': token}
-            content = self.session.post(url, headers=headers, data=custom_payload)
+            if rel == '3':
+                url = self.get_url('allianceApplications', {'action': 3})    
+                form = (action.attrs['rev']).replace('form_', '')
+                token = action.attrs['token']
+                custom_payload = {'applicationId': form, 'text': "", 'token': token}
+                content = self.session.post(url, headers=headers, data=custom_payload)
 
         return []
