@@ -1037,3 +1037,21 @@ class OGame(object):
                    'pass': self.password,
                    'ajax': 1}
         self.session.post(self.get_url('changenick'), headers=headers, data=payload)
+
+    def create_alliance(self, alliance_name, alliance_tag):
+        headers = {'X-Requested-With': 'XMLHttpRequest'}
+        url = self.get_url('allianceCreation', {'action': 16})
+        payload = {'allyTag': alliance_tag,
+                   'allyName': alliance_name,
+                   'token': 'undefined'}
+        html = self.session.post(url, headers=headers, data=payload).content
+        soup = BeautifulSoup(html, 'lxml')
+        a_name = soup.find('meta', {'name': 'ogame-alliance-name'})
+        a_tag = soup.find('meta', {'name': 'ogame-alliance-tag'})
+
+        alliance_data = {'alliance_name': '', 'alliance_tag': ''}
+
+        if alliance_name is not None and alliance_tag is not None:
+            alliance_data['alliance_name'] = alliance_name
+
+        return alliance_data
