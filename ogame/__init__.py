@@ -1061,7 +1061,7 @@ class OGame(object):
         headers = {'X-Requested-With': 'XMLHttpRequest'}
         html = self.session.post(self.get_url('allianceApplications'), headers=headers, data=payload).content
         soup = BeautifulSoup(html, 'lxml')
-        actions = soup.find_all('th', {'class': 'action'})
+        actions = soup.find_all('a', {'class': 'action'})
         for action in actions:
             rel = action.attrs['rel']
             if rel == '3':
