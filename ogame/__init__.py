@@ -1076,4 +1076,13 @@ class OGame(object):
     def get_player_metas(self):
         res = self.session.get(self.get_url('overview')).content
         soup = BeautifulSoup(res, 'lxml')
-        origin_coords = soup.find('meta', {'name': 'ogame-planet-coordinates'})['content']
+        player_id = soup.find('meta', {'name': 'ogame-player-id'})['content']
+        player_name = soup.find('meta', {'name': 'ogame-player-name'})['content']
+        alliance_id = soup.find('meta', {'name': 'ogame-alliance-id'})['content']
+        alliance_name = soup.find('meta', {'name': 'oogame-alliance-name'})['content']
+        alliance_tag = soup.find('meta', {'name': 'ogame-alliance-tag'})['content']
+
+        data = {'player_id': player_id, 'player_name': player_name, 'allicance_id': alliance_name,
+                alliance_tag: alliance_tag}
+
+        return data
