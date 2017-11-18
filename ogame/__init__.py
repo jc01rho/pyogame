@@ -1079,7 +1079,7 @@ class OGame(object):
         player_id = soup.find('meta', {'name': 'ogame-player-id'})['content']
         player_name = soup.find('meta', {'name': 'ogame-player-name'})['content']
         alliance_id = soup.find('meta', {'name': 'ogame-alliance-id'})['content']
-        alliance_name = soup.find('meta', {'name': 'oogame-alliance-name'})['content']
+        alliance_name = soup.find('meta', {'name': 'ogame-alliance-name'})['content']
         alliance_tag = soup.find('meta', {'name': 'ogame-alliance-tag'})['content']
 
         data = {'player_id': player_id, 'player_name': player_name, 'allicance_id': alliance_name,
