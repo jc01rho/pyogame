@@ -1083,6 +1083,6 @@ class OGame(object):
         alliance_tag = soup.find('meta', {'name': 'ogame-alliance-tag'})['content']
 
         data = {'player_id': player_id, 'player_name': player_name, 'allicance_id': alliance_name,
-                alliance_tag: alliance_tag}
+                'alliance_tag': alliance_tag}
 
         return data
