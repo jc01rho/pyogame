@@ -236,7 +236,7 @@ class OGame(object):
         tmp = re.search(r'textContent\[7\]="([^"]+)"', html).group(1)
         soup = BeautifulSoup(tmp, 'lxml')
         tmp = soup.text
-        infos = re.search(r'([\d\\.]+) \(Place ([\d\.]+) of ([\d\.]+)\)', tmp)
+        infos = re.search(r'([\d\\.]+) \(Lugar ([\d\.]+) de ([\d\.]+)\)', tmp)
         res['points'] = parse_int(infos.group(1))
         res['rank'] = parse_int(infos.group(2))
         res['total'] = parse_int(infos.group(3))
@@ -1065,11 +1065,11 @@ class OGame(object):
         for action in actions:
             rel = action.attrs['rel']
             if rel == '3':
-                url = self.get_url('allianceApplications', {'action': 3})
                 form = (action.attrs['rev']).replace('form_', '')
                 token = action.attrs['token']
-                custom_payload = {'applicationId': form, 'text': "", 'token': token}
-                content = self.session.post(url, headers=headers, data=custom_payload)
+                url = self.get_url('allianceApplications',
+                                   {'action': 3, 'applicationId': form, 'token': token, 'text': ''})
+                content = self.session.post(url, headers=headers)
 
         return []
 
