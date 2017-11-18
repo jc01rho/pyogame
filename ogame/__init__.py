@@ -1065,7 +1065,7 @@ class OGame(object):
         for idx, action in enumerate(actions):
             rel = action.attrs['rel']
             if idx % 2 == 0:
-                form = (action.attrs['rev']).replace('form_', '')
+                form = (action.attrs['rev'][0]).replace('form_', '')
                 token = action.attrs['token']
                 url = self.get_url('allianceApplications',
                                    {'action': 3, 'applicationId': form, 'token': token, 'text': ''})
