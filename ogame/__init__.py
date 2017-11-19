@@ -12,6 +12,7 @@ from ogame.errors import BAD_UNIVERSE_NAME, BAD_DEFENSE_ID, NOT_LOGGED, BAD_CRED
     BAD_SHIP_ID, BAD_RESEARCH_ID
 from bs4 import BeautifulSoup
 from dateutil import tz
+from util import get_random_user_agent
 
 proxies = {
     'http': 'socks5://127.0.0.1:9050',
@@ -127,7 +128,7 @@ class OGame(object):
                  sandbox=False, sandbox_obj=None, use_proxy=False):
         self.session = requests.session()
         self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; rv:52.0) Gecko/20100101 Firefox/52.0'})
+            'User-Agent': get_random_user_agent()})
         self.sandbox = sandbox
         self.sandbox_obj = sandbox_obj if sandbox_obj is not None else {}
         self.universe = universe
