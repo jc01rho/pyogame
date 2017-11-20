@@ -12,7 +12,7 @@ from ogame.errors import BAD_UNIVERSE_NAME, BAD_DEFENSE_ID, NOT_LOGGED, BAD_CRED
     BAD_SHIP_ID, BAD_RESEARCH_ID
 from bs4 import BeautifulSoup
 from dateutil import tz
-from util import get_random_user_agent
+from ogame.util import get_random_user_agent
 
 proxies = {
     'http': 'socks5://127.0.0.1:9050',
