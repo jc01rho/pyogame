@@ -128,7 +128,7 @@ class OGame(object):
                  sandbox=False, sandbox_obj=None, use_proxy=False):
         self.session = requests.session()
         self.session.headers.update({
-            'User-Agent': get_random_user_agent()})
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:57.0) Gecko/20100101 Firefox/57.0'})
         self.sandbox = sandbox
         self.sandbox_obj = sandbox_obj if sandbox_obj is not None else {}
         self.universe = universe
