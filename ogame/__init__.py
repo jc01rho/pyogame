@@ -162,6 +162,7 @@ class OGame(object):
 
     def logout(self):
         self.session.get(self.get_url('logout'))
+        self.session.cookies.clear()
 
     def is_logged(self, html=None):
         if not html:
