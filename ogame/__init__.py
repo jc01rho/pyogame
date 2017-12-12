@@ -14,10 +14,13 @@ from bs4 import BeautifulSoup
 from dateutil import tz
 from ogame.util import get_random_user_agent
 
-proxies = {
-    'http': 'socks5://127.0.0.1:9050',
-    'https': 'socks5://127.0.0.1:9050'
-}
+def get_proxies(port=9050):
+    proxies = {
+        'http': 'socks5://127.0.0.1:{}'.format(port),
+        'https': 'socks5://127.0.0.1:{}'.format(port)
+    }
+
+    return proxies
 
 
 def get_ip():
@@ -125,7 +128,7 @@ def get_code(name):
 @for_all_methods(sandbox_decorator)
 class OGame(object):
     def __init__(self, universe, username, password, domain='en.ogame.gameforge.com', auto_bootstrap=True,
-                 sandbox=False, sandbox_obj=None, use_proxy=False):
+                 sandbox=False, sandbox_obj=None, use_proxy=False, proxy_port=9050):
         self.session = requests.session()
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:57.0) Gecko/20100101 Firefox/57.0'})
@@ -142,7 +145,7 @@ class OGame(object):
             self.login()
             self.universe_speed = self.get_universe_speed()
         if use_proxy:
-            self.session.proxies.update(proxies)
+            self.session.proxies.update(get_proxies(proxy_port))
 
     def login(self):
         """Get the ogame session token."""
