@@ -14,6 +14,7 @@ from bs4 import BeautifulSoup
 from dateutil import tz
 from ogame.util import get_random_user_agent
 
+
 def get_proxies(port=9050):
     proxies = {
         'http': 'socks5://127.0.0.1:{}'.format(port),
@@ -995,6 +996,18 @@ class OGame(object):
             return True
         else:
             return False
+
+    def can_build_defenses(self, planet_id, defense_item):
+        html = self.session.get(self.get_url('defense', {'cp': planet_id})).content
+        defense_code = constants.Defense[defense_item]
+        soup = BeautifulSoup(html, 'lxml')
+        in_construction = soup.find('div', {'class': 'defense{}'.format(defense_code)}).find('div',
+                                                                                             {'class': 'construction'})
+        parent_class = soup.find('div', {'class': 'defense{}'.format(defense_code)}).parent.attrs['class']
+        if in_construction is not None or parent_class == 'off':
+            return False
+        else:
+            return True
 
     def can_build_research(self, building):
         html = self.session.get(self.get_url('research')).content
