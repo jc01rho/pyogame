@@ -1011,11 +1011,17 @@ class OGame(object):
 
     def can_build_ships(self, planet_id, ship_item):
         html = self.session.get(self.get_url('shipyard', {'cp': planet_id})).content
-        defense_code = constants.Ships[ship_item]
+        ship_code = constants.Ships[ship_item]
         soup = BeautifulSoup(html, 'lxml')
-        in_construction = soup.find('div', {'class': 'military{}'.format(defense_code)}).find('div',
-                                                                                             {'class': 'construction'})
-        parent_class = soup.find('div', {'class': 'military{}'.format(defense_code)}).parent.attrs['class']
+        ship_type = 'civil'
+
+        # get the type of ship
+        if ship_code in [204, 205, 206, 207, 213, 214, 215, 211]:
+            ship_type = 'military'
+
+        in_construction = soup.find('div', {'class': '{}{}'.format(ship_type, ship_code)}).find('div',
+                                                                                           {'class': 'construction'})
+        parent_class = soup.find('div', {'class': '{}{}'.format(ship_type, ship_code)}).parent.attrs['class']
         if in_construction is not None or parent_class == 'off':
             return False
         else:
