@@ -30,7 +30,7 @@ def get_proxies(port=9050):
 
 def get_ip():
     url = 'http://ifconfig.me/ip'
-    response = requests.get(url, proxies=proxies)
+    response = requests.get(url, proxies=get_proxies())
     return 'tor ip: {}'.format(response.text.strip())
 
 
@@ -906,43 +906,6 @@ class OGame(object):
             raise NOT_LOGGED
         return obj
 
-    def galaxy_infos(self, galaxy, system):
-        html = self.galaxy_content(galaxy, system)['galaxy']
-        soup = BeautifulSoup(html, 'lxml')
-        rows = soup.findAll('tr', {'class': 'row'})
-        res = []
-        for row in rows:
-            if 'empty_filter' not in row.get('class'):
-                tooltips = row.findAll('div', {'class': 'htmlTooltip'})
-                planet_tooltip = tooltips[0]
-                planet_name = planet_tooltip.find('h1').find('span').text
-                planet_url = planet_tooltip.find('img').get('src')
-                coords_raw = planet_tooltip.find('span', {'id': 'pos-planet'}).text
-                coords = re.search(r'\[(\d+):(\d+):(\d+)\]', coords_raw)
-                galaxy, system, position = coords.groups()
-                planet_infos = {}
-                planet_infos['name'] = planet_name
-                planet_infos['img'] = planet_url
-                planet_infos['coordinate'] = {}
-                planet_infos['coordinate']['galaxy'] = int(galaxy)
-                planet_infos['coordinate']['system'] = int(system)
-                planet_infos['coordinate']['position'] = int(position)
-                if len(tooltips) > 1:
-                    player_tooltip = tooltips[1]
-                    player_id_raw = player_tooltip.get('id')
-                    player_id = int(re.search(r'player(\d+)', player_id_raw).groups()[0])
-                    player_name = player_tooltip.find('h1').find('span').text
-                    player_rank = parse_int(player_tooltip.find('li', {'class': 'rank'}).find('a').text)
-                else:
-                    player_id = None
-                    player_name = row.find('td', {'class': 'playername'}).find('span').text.strip()
-                    player_rank = None
-                planet_infos['player'] = {}
-                planet_infos['player']['id'] = player_id
-                planet_infos['player']['name'] = player_name
-                planet_infos['player']['rank'] = player_rank
-                res.append(planet_infos)
-        return res
 
     def find_empty_slots(self, html):
         soup = BeautifulSoup(html, 'lxml')
@@ -971,65 +934,7 @@ class OGame(object):
 
         return res
 
-    def send_spy(self, galaxy, system, position, ship_count):
-        headers = {'X-Requested-With': 'XMLHttpRequest'}
-        payload = {'mission': 6,
-                   'type': 1,
-                   'token': '',
-                   'galaxy': galaxy,
-                   'system': system,
-                   'position': position,
-                   'shipCount': ship_count,
-                   'speed': 10}
 
-        token = ''
-        if miniFleetToken is None or miniFleetToken == '':
-            first_res = self.session.get(self.get_url('overview')).content
-            moon_soup = BeautifulSoup(first_res, 'html.parser')
-            data = moon_soup.find_all('script', {'type': 'text/javascript'})
-            parameter = 'miniFleetToken'
-            for d in data:
-                d = d.text
-                if 'var miniFleetToken=' in d:
-                    regex_string = 'var {parameter}="(.*?)"'.format(parameter=parameter)
-                    token = re.findall(regex_string, d)
-        else:
-            token = miniFleetToken
-
-        url = self.get_url('minifleet', {'ajax': 1})
-        payload['token'] = token
-        res = self.session.post(url, data=payload, headers=headers).content.decode('utf8')
-        return res
-
-    def send_spy(self, galaxy, system, position, ship_count):
-        headers = {'X-Requested-With': 'XMLHttpRequest'}
-        payload = {'mission': 6,
-                   'type': 1,
-                   'token': '',
-                   'galaxy': galaxy,
-                   'system': system,
-                   'position': position,
-                   'shipCount': ship_count,
-                   'speed': 10}
-
-        token = ''
-        if miniFleetToken is None or miniFleetToken == '':
-            first_res = self.session.get(self.get_url('overview')).content
-            moon_soup = BeautifulSoup(first_res, 'html.parser')
-            data = moon_soup.find_all('script', {'type': 'text/javascript'})
-            parameter = 'miniFleetToken'
-            for d in data:
-                d = d.text
-                if 'var miniFleetToken=' in d:
-                    regex_string = 'var {parameter}="(.*?)"'.format(parameter=parameter)
-                    token = re.findall(regex_string, d)
-        else:
-            token = miniFleetToken
-
-        url = self.get_url('minifleet', {'ajax': 1})
-        payload['token'] = token
-        res = self.session.post(url, data=payload, headers=headers).content.decode('utf8')
-        return res
 
     def get_flying_fleets(self):
         url = self.get_url('movement')
@@ -1206,7 +1111,7 @@ class OGame(object):
 
         delete_action = self.session.post(self.get_url('planetGiveup'), headers=headers, data=delete_payload).content
 
-<<<<<<< HEAD
+
     def Consommation(self, type, batiment, lvl):
 
         """ Retourne la consommation du batiment du level lvl + 1 """
