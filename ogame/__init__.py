@@ -16,12 +16,16 @@ from ogame.errors import BAD_UNIVERSE_NAME, BAD_DEFENSE_ID, NOT_LOGGED, BAD_CRED
     BAD_SHIP_ID, BAD_RESEARCH_ID
 from bs4 import BeautifulSoup
 from dateutil import tz
+from ogame.util import get_random_user_agent
 
-miniFleetToken = None
-proxies = {
-    'http': 'socks5://127.0.0.1:9050',
-    'https': 'socks5://127.0.0.1:9050'
-}
+
+def get_proxies(port=9050):
+    proxies = {
+        'http': 'socks5://127.0.0.1:{}'.format(port),
+        'https': 'socks5://127.0.0.1:{}'.format(port)
+    }
+
+    return proxies
 
 
 def get_ip():
@@ -128,12 +132,10 @@ def get_code(name):
 @for_all_methods(sandbox_decorator)
 class OGame(object):
     def __init__(self, universe, username, password, domain='en.ogame.gameforge.com', auto_bootstrap=True,
-                 sandbox=False, sandbox_obj=None, use_proxy=False):
+                 sandbox=False, sandbox_obj=None, use_proxy=False, proxy_port=9050):
         self.session = requests.session()
         self.session.headers.update({
-
-            'User-Agent': 'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'})
-
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:57.0) Gecko/20100101 Firefox/57.0'})
         self.sandbox = sandbox
         self.sandbox_obj = sandbox_obj if sandbox_obj is not None else {}
         self.universe = universe
@@ -147,7 +149,7 @@ class OGame(object):
             self.login()
             self.universe_speed = self.get_universe_speed()
         if use_proxy:
-            self.session.proxies.update(proxies)
+            self.session.proxies.update(get_proxies(proxy_port))
 
     def login(self):
         """Get the ogame session token."""
@@ -168,6 +170,7 @@ class OGame(object):
 
     def logout(self):
         self.session.get(self.get_url('logout'))
+        self.session.cookies.clear()
 
     def is_logged(self, html=None):
         if not html:
@@ -903,6 +906,44 @@ class OGame(object):
             raise NOT_LOGGED
         return obj
 
+    def galaxy_infos(self, galaxy, system):
+        html = self.galaxy_content(galaxy, system)['galaxy']
+        soup = BeautifulSoup(html, 'lxml')
+        rows = soup.findAll('tr', {'class': 'row'})
+        res = []
+        for row in rows:
+            if 'empty_filter' not in row.get('class'):
+                tooltips = row.findAll('div', {'class': 'htmlTooltip'})
+                planet_tooltip = tooltips[0]
+                planet_name = planet_tooltip.find('h1').find('span').text
+                planet_url = planet_tooltip.find('img').get('src')
+                coords_raw = planet_tooltip.find('span', {'id': 'pos-planet'}).text
+                coords = re.search(r'\[(\d+):(\d+):(\d+)\]', coords_raw)
+                galaxy, system, position = coords.groups()
+                planet_infos = {}
+                planet_infos['name'] = planet_name
+                planet_infos['img'] = planet_url
+                planet_infos['coordinate'] = {}
+                planet_infos['coordinate']['galaxy'] = int(galaxy)
+                planet_infos['coordinate']['system'] = int(system)
+                planet_infos['coordinate']['position'] = int(position)
+                if len(tooltips) > 1:
+                    player_tooltip = tooltips[1]
+                    player_id_raw = player_tooltip.get('id')
+                    player_id = int(re.search(r'player(\d+)', player_id_raw).groups()[0])
+                    player_name = player_tooltip.find('h1').find('span').text
+                    player_rank = parse_int(player_tooltip.find('li', {'class': 'rank'}).find('a').text)
+                else:
+                    player_id = None
+                    player_name = row.find('td', {'class': 'playername'}).find('span').text.strip()
+                    player_rank = None
+                planet_infos['player'] = {}
+                planet_infos['player']['id'] = player_id
+                planet_infos['player']['name'] = player_name
+                planet_infos['player']['rank'] = player_rank
+                res.append(planet_infos)
+        return res
+
     def find_empty_slots(self, html):
         soup = BeautifulSoup(html, 'lxml')
         empty_rows = soup.find_all('tr', {'class': 'empty_filter'})
@@ -1096,6 +1137,36 @@ class OGame(object):
         else:
             return False
 
+    def can_build_defenses(self, planet_id, defense_item):
+        html = self.session.get(self.get_url('defense', {'cp': planet_id})).content
+        defense_code = constants.Defense[defense_item]
+        soup = BeautifulSoup(html, 'lxml')
+        in_construction = soup.find('div', {'class': 'defense{}'.format(defense_code)}).find('div',
+                                                                                             {'class': 'construction'})
+        parent_class = soup.find('div', {'class': 'defense{}'.format(defense_code)}).parent.attrs['class']
+        if in_construction is not None or parent_class == 'off':
+            return False
+        else:
+            return True
+
+    def can_build_ships(self, planet_id, ship_item):
+        html = self.session.get(self.get_url('shipyard', {'cp': planet_id})).content
+        ship_code = constants.Ships[ship_item]
+        soup = BeautifulSoup(html, 'lxml')
+        ship_type = 'civil'
+
+        # get the type of ship
+        if ship_code in [204, 205, 206, 207, 213, 214, 215, 211]:
+            ship_type = 'military'
+
+        in_construction = soup.find('div', {'class': '{}{}'.format(ship_type, ship_code)}).find('div',
+                                                                                           {'class': 'construction'})
+        parent_class = soup.find('div', {'class': '{}{}'.format(ship_type, ship_code)}).parent.attrs['class']
+        if in_construction is not None or parent_class == 'off':
+            return False
+        else:
+            return True
+
     def can_build_research(self, building):
         html = self.session.get(self.get_url('research')).content
         soup = BeautifulSoup(html, 'lxml')
@@ -1106,7 +1177,7 @@ class OGame(object):
             return False
 
     def alliance_apply(self, alliance_id, message):
-        url = self.get_url('allianceWriteApplication', {'action': 19})
+        url = self.get_url('allianceWriteApplication', {'action': 1})
         payload = {'text': message,
                    'appliedAllyId': alliance_id}
         headers = {'X-Requested-With': 'XMLHttpRequest'}
@@ -1135,6 +1206,7 @@ class OGame(object):
 
         delete_action = self.session.post(self.get_url('planetGiveup'), headers=headers, data=delete_payload).content
 
+<<<<<<< HEAD
     def Consommation(self, type, batiment, lvl):
 
         """ Retourne la consommation du batiment du level lvl + 1 """
@@ -1235,3 +1307,62 @@ class OGame(object):
                 planet_infos['player']['rank'] = player_rank
                 res.append(planet_infos)
         return res
+
+    def change_player_name(self, new_name):
+        headers = {'X-Requested-With': 'XMLHttpRequest'}
+        modal_content = self.session.get(self.get_url('changenick'), headers=headers).content
+        payload = {'nick': new_name,
+                   'pass': self.password,
+                   'ajax': 1}
+        self.session.post(self.get_url('changenick'), headers=headers, data=payload)
+
+    def create_alliance(self, alliance_name, alliance_tag):
+        headers = {'X-Requested-With': 'XMLHttpRequest'}
+        url = self.get_url('allianceCreation', {'action': 16})
+        payload = {'allyTag': alliance_tag,
+                   'allyName': alliance_name,
+                   'token': 'undefined'}
+        html = self.session.post(url, headers=headers, data=payload).content
+        soup = BeautifulSoup(html, 'lxml')
+        a_name = soup.find('meta', {'name': 'ogame-alliance-name'})
+        a_tag = soup.find('meta', {'name': 'ogame-alliance-tag'})
+
+        alliance_data = {'alliance_name': '', 'alliance_tag': ''}
+
+        if alliance_name is not None and alliance_tag is not None:
+            alliance_data['alliance_name'] = alliance_name
+
+        return alliance_data
+
+    def accept_alliance_requests(self):
+        payload = {'ajax': 1}
+        headers = {'X-Requested-With': 'XMLHttpRequest'}
+        html = self.session.post(self.get_url('allianceApplications'), headers=headers, data=payload).content
+        soup = BeautifulSoup(html, 'lxml')
+        actions = soup.find_all('a', {'class': 'action', 'rel': '3'})
+        for idx, action in enumerate(actions):
+            rel = action.attrs['rel']
+            if idx % 2 == 0:
+                form_value = action.attrs['rev'][0]
+                form = form_value.replace('form_', '')
+                token = action.attrs['token']
+                url = self.get_url('allianceApplications',
+                                   {'action': 3, 'applicationId': form, 'token': token, 'text': ''})
+                content = self.session.post(url, headers=headers)
+
+        return []
+
+    def get_player_metas(self):
+        res = self.session.get(self.get_url('overview')).content
+        soup = BeautifulSoup(res, 'lxml')
+        player_id = soup.find('meta', {'name': 'ogame-player-id'})['content']
+        player_name = soup.find('meta', {'name': 'ogame-player-name'})['content']
+        alliance_id = soup.find('meta', {'name': 'ogame-alliance-id'})['content']
+        alliance_name = soup.find('meta', {'name': 'ogame-alliance-name'})['content']
+        alliance_tag = soup.find('meta', {'name': 'ogame-alliance-tag'})['content']
+
+        data = {'player_id': player_id, 'player_name': player_name, 'alliance_id': alliance_id,
+                'alliance_tag': alliance_tag, 'alliance_name': alliance_name}
+
+        return data
+
