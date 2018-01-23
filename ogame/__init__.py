@@ -829,55 +829,24 @@ class OGame(object):
         rows = soup.findAll('tr', {'class': 'row'})
         res = []
         for row in rows:
+            position = row.find('td', {'class': 'position'}).content()
+            player_obj = {'player': None, 'galaxy': galaxy, 'system': system, 'position': int(position), 'status': 'a',
+                          'planet': None, 'moon': None, 'debris': None}
+            if 'empty_filter' in row.get('class'):
+                res.append(player_obj)
+                continue
+
+            if 'vacation_filter' in row.get('class'):
+                row['status'] = 'v'
+
+            if 'inactive_filter' in row.get('class'):
+                row['status'] = '{}{}'.format(row['status'], 'i')
+
             if 'empty_filter' not in row.get('class'):
-                activity = None
-                activity_div = row.findAll('div', {'class': 'activity'})
-                if len(activity_div) > 0:
-                    activity_raw = activity_div[0].text.strip()
-                    if activity_raw != '':
-                        activity = int(activity_raw)
-                    else:
-                        activity = 0
-                tooltips = row.findAll('div', {'class': 'htmlTooltip'})
-                planet_tooltip = tooltips[0]
-                planet_name = planet_tooltip.find('h1').find('span').text
-                planet_url = planet_tooltip.find('img').get('src')
-                coords_raw = planet_tooltip.find('span', {'id': 'pos-planet'}).text
-                coords = re.search(r'\[(\d+):(\d+):(\d+)\]', coords_raw)
-                galaxy, system, position = coords.groups()
-                planet_infos = {}
-                planet_infos['activity'] = activity
-                planet_infos['name'] = planet_name
-                planet_infos['img'] = planet_url
-                planet_infos['coordinate'] = {}
-                planet_infos['coordinate']['galaxy'] = int(galaxy)
-                planet_infos['coordinate']['system'] = int(system)
-                planet_infos['coordinate']['position'] = int(position)
-                if len(tooltips) > 2:
-                    for i in range(1, 3):
-                        player_tooltip = tooltips[i]
-                        player_id_raw = player_tooltip.get('id')
-                        if player_id_raw.startswith('debris'):
-                            continue
-                        player_id = int(re.search(r'player(\d+)', player_id_raw).groups()[0])
-                        player_name = player_tooltip.find('h1').find('span').text
-                        player_rank = parse_int(player_tooltip.find('li', {'class': 'rank'}).find('a').text)
-                        break
-                elif len(tooltips) > 1:
-                    player_tooltip = tooltips[1]
-                    player_id_raw = player_tooltip.get('id')
-                    player_id = int(re.search(r'player(\d+)', player_id_raw).groups()[0])
-                    player_name = player_tooltip.find('h1').find('span').text
-                    player_rank = parse_int(player_tooltip.find('li', {'class': 'rank'}).find('a').text)
-                else:
-                    player_id = None
-                    player_name = row.find('td', {'class': 'playername'}).find('span').text.strip()
-                    player_rank = None
-                planet_infos['player'] = {}
-                planet_infos['player']['id'] = player_id
-                planet_infos['player']['name'] = player_name
-                planet_infos['player']['rank'] = player_rank
-                res.append(planet_infos)
+                player_obj['player'] = 'Occupied'
+
+            res.append(planet_infos)
+
         return res
 
     def find_empty_slots(self, html):
@@ -1039,7 +1008,8 @@ class OGame(object):
             ship_type = 'military'
 
         in_construction = soup.find('div', {'class': '{}{}'.format(ship_type, ship_code)}).find('div',
-                                                                                           {'class': 'construction'})
+                                                                                                {
+                                                                                                    'class': 'construction'})
         parent_class = soup.find('div', {'class': '{}{}'.format(ship_type, ship_code)}).parent.attrs['class']
         if in_construction is not None or parent_class == 'off':
             return False
