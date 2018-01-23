@@ -1007,9 +1007,8 @@ class OGame(object):
         if ship_code in [204, 205, 206, 207, 213, 214, 215, 211]:
             ship_type = 'military'
 
-        in_construction = soup.find('div', {'class': '{}{}'.format(ship_type, ship_code)}).find('div',
-                                                                                                {
-                                                                                                    'class': 'construction'})
+        in_construction = soup.find('div', {'class': '{}{}'.format(ship_type, ship_code)}).find('div', {
+            'class': 'construction'})
         parent_class = soup.find('div', {'class': '{}{}'.format(ship_type, ship_code)}).parent.attrs['class']
         if in_construction is not None or parent_class == 'off':
             return False
