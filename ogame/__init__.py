@@ -835,12 +835,6 @@ class OGame(object):
                 res.append(player_obj)
                 continue
 
-            if 'vacation_filter' in row.get('class'):
-                row['status'] = 'v'
-
-            if 'inactive_filter' in row.get('class'):
-                row['status'] = '{}{}'.format(row['status'], 'i')
-
             if 'empty_filter' not in row.get('class'):
                 player_obj['player'] = 'Occupied'
 
