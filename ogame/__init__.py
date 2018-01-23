@@ -1104,3 +1104,19 @@ class OGame(object):
                 'alliance_tag': alliance_tag, 'alliance_name': alliance_name}
 
         return data
+
+    def get_max_colonies(self):
+        astro_level = self.get_research()['astrophysics']
+        if astro_level % 2 == 1:
+            astro_level = astro_level + 1
+
+        return astro_level / 2
+
+    def can_colonize_more_planets(self):
+        planet_list = self.get_planet_ids()
+        max_colonies = self.get_max_colonies()
+
+        if len(planet_list) < max_colonies:
+            return True
+        else:
+            return False
