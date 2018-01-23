@@ -828,9 +828,8 @@ class OGame(object):
         soup = BeautifulSoup(html, 'lxml')
         rows = soup.findAll('tr', {'class': 'row'})
         res = []
-        for row in rows:
-            position = row.find('td', {'class': 'position'}).content()
-            player_obj = {'player': None, 'galaxy': galaxy, 'system': system, 'position': int(position), 'status': 'a',
+        for position, row in enumerate(rows):
+            player_obj = {'player': None, 'galaxy': galaxy, 'system': system, 'position': position + 1, 'status': 'a',
                           'planet': None, 'moon': None, 'debris': None}
             if 'empty_filter' in row.get('class'):
                 res.append(player_obj)
@@ -845,7 +844,7 @@ class OGame(object):
             if 'empty_filter' not in row.get('class'):
                 player_obj['player'] = 'Occupied'
 
-            res.append(planet_infos)
+            res.append(player_obj)
 
         return res
 
