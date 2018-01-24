@@ -972,7 +972,8 @@ class OGame(object):
 
         html = self.session.get(self.get_url(building_url, {'cp': planet_id})).content
         soup = BeautifulSoup(html, 'lxml')
-        is_free = soup.find('div', {'class': '{}{}'.format(building_type, building)}).find('a', {'class': 'fastBuild'})
+        item_div = soup.find('div', {'class': '{}{}'.format(building_type, building)})
+        is_free = item_div.find('a', {'class': 'fastBuild'})
         if is_free is not None:
             return True
         else:
