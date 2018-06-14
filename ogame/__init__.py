@@ -141,7 +141,7 @@ class OGame(object):
         self.sandbox_obj = sandbox_obj if sandbox_obj is not None else {}
         self.universe = universe
         self.universe_id = universe_id
-        self.universe_lang = universe_lang;
+        self.universe_lang = universe_lang
         self.universe_url = universe_url
         self.domain = domain
         self.username = username
@@ -162,7 +162,7 @@ class OGame(object):
 
         # 1 login to lobby
         payload = {'kid': '',
-                   'language': 'fr',
+                   'language': self.universe_lang,
                    'autologin': 'false',
                    'credentials[email]': self.username,
                    'credentials[password]': self.password}
