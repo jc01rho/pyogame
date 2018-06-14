@@ -131,14 +131,17 @@ def get_code(name):
 
 @for_all_methods(sandbox_decorator)
 class OGame(object):
-    def __init__(self, universe, username, password, domain='en.ogame.gameforge.com', auto_bootstrap=True,
+    def __init__(self, universe, universe_id, universe_url, username, password, domain='en.ogame.gameforge.com',
+                 auto_bootstrap=True,
                  sandbox=False, sandbox_obj=None, use_proxy=False, proxy_port=9050):
         self.session = requests.session()
         self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:57.0) Gecko/20100101 Firefox/57.0'})
+            'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.99 Safari/537.36'})
         self.sandbox = sandbox
         self.sandbox_obj = sandbox_obj if sandbox_obj is not None else {}
         self.universe = universe
+        self.universe_id = universe_id
+        self.universe_url = universe_url
         self.domain = domain
         self.username = username
         self.password = password
@@ -155,13 +158,50 @@ class OGame(object):
         """Get the ogame session token."""
         if self.server_url == '':
             self.server_url = self.get_universe_url(self.universe)
+
+        # 1 login to lobby
         payload = {'kid': '',
-                   'uni': self.server_url,
-                   'login': self.username,
-                   'pass': self.password}
-        time.sleep(random.uniform(5, 10))
-        res = self.session.post(self.get_url('login'), data=payload).content
-        soup = BeautifulSoup(res, 'html.parser')
+                   'language': 'fr',
+                   'autologin': 'false',
+                   'credentials[email]': self.username,
+                   'credentials[password]': self.password}
+
+        time.sleep(random.uniform(1, 2))
+        res = self.session.post('https://lobby-api.ogame.gameforge.com/users', data=payload)
+
+        php_session_id = None
+
+        for c in res.cookies:
+            if c.name == 'PHPSESSID':
+                php_session_id = c.value
+
+        # 2 retrieve server accounts from ogame lobby session and get selected server id
+        cookie = {'PHPSESSID': php_session_id}
+
+        time.sleep(random.uniform(1, 2))
+        res = self.session.get('https://lobby-api.ogame.gameforge.com/users/me/accounts', cookies=cookie)
+
+        selected_server_id = None
+        server_accounts = res.json()
+        for server_account in server_accounts:
+            if server_account['server']['number'] == self.universe_id:
+                selected_server_id = server_account['id']
+
+        # 3 retrieve the selected server url with token
+        cookie = {'PHPSESSID': php_session_id}
+
+        time.sleep(random.uniform(1, 2))
+        res = self.session.get(
+            'https://lobby-api.ogame.gameforge.com/users/me/loginLink?id={}&server[language]=fr&server[number]={}'.format(
+                selected_server_id, str(self.universe_id)), cookies=cookie).json()
+
+        selected_server_url = res['url']
+
+        # 4 get the selected server page from the url
+        res = self.session.get(selected_server_url).content
+
+        soup = BeautifulSoup(res, 'lxml')
+        self.new_messages = soup.find('span', {'class': 'noMessage'}) == None
         session_found = soup.find('meta', {'name': 'ogame-session'})
         if session_found:
             self.ogame_session = session_found.get('content')
@@ -759,12 +799,7 @@ class OGame(object):
         return servers
 
     def get_universe_url(self, universe):
-        """Get a universe name and return the server url."""
-        servers = self.get_servers(self.domain)
-        universe = universe.lower()
-        if universe not in servers:
-            raise BAD_UNIVERSE_NAME
-        return servers[universe]
+        return self.universe_url
 
     def get_server_time(self):
         """Get the ogame server time."""
