@@ -83,6 +83,38 @@ Ships = {'SmallCargo': 202,
          'SolarSatellite': 212,
          'Destroyer': 213,
          'Deathstar': 214,
+         'Battlecruiser': 215,
+
+         # FR
+         'Petittransporteur': 202,
+         'Grandtransporteur': 203,
+         'Chasseurléger': 204,
+         'Chasseurlourd': 205,
+         'Croiseur': 206,
+         'Vaisseaudebataille': 207,
+         'Vaisseaudecolonisation': 208,
+         'Recycleur': 209,
+         'Sonded`espionnage': 210,
+         'Bombardier': 211,
+         'Satellitesolaire': 212,
+         'Destructeur': 213,
+         'Étoiledelamort': 214,
+         'Traqueur': 215,
+
+         # NL
+         'Kleinvrachtschip': 202,
+         'Grootvrachtschip': 203,
+         'Lichtgevechtsschip': 204,
+         'Zwaargevechtsschip': 205,
+         'Kruiser': 206,
+         'Slagschip': 207,
+         'Kolonisatiesschip': 208,
+         'Recycler': 209,
+         'Spionagesonde': 210,
+         'Bommenwerper': 211,
+         'Zonne-energiesatelliet': 212,
+         'Vernietiger': 213,
+         'Sterdesdoods': 214,
 
          'Battlecruiser': 215
          }
