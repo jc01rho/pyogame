@@ -1045,24 +1045,7 @@ class OGame(object):
             raise NOT_LOGGED
         return obj
 
-    def galaxy_infos(self, galaxy, system):
-        html = self.galaxy_content(galaxy, system)['galaxy']
-        soup = BeautifulSoup(html, 'lxml')
-        rows = soup.findAll('tr', {'class': 'row'})
-        res = []
-        for position, row in enumerate(rows):
-            player_obj = {'player': None, 'galaxy': galaxy, 'system': system, 'position': position + 1, 'status': 'a',
-                          'planet': None, 'moon': None, 'debris': None}
-            if 'empty_filter' in row.get('class'):
-                res.append(player_obj)
-                continue
-
-            if 'empty_filter' not in row.get('class'):
-                player_obj['player'] = 'Occupied'
-
-            res.append(player_obj)
-
-        return res
+  
 
     def find_empty_slots(self, html):
         soup = BeautifulSoup(html, 'lxml')
