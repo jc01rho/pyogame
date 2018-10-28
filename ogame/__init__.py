@@ -18,6 +18,7 @@ from ogame.errors import BAD_UNIVERSE_NAME, BAD_DEFENSE_ID, NOT_LOGGED, BAD_CRED
 from bs4 import BeautifulSoup
 from dateutil import tz
 from ogame.util import get_random_user_agent
+import urllib3
 
 
 def get_proxies(port=9050):
@@ -130,13 +131,20 @@ def get_code(name):
     return None
 
 
+
+
+
+
+
 @for_all_methods(sandbox_decorator)
 class OGame(object):
     def __init__(self, universe, universe_id, universe_lang, universe_url, username, password,
                  domain='en.ogame.gameforge.com',
                  auto_bootstrap=True,
                  sandbox=False, sandbox_obj=None, use_proxy=False, proxy_port=9050):
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         self.session = requests.session()
+        self.session.verify = False
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.67 Safari/537.36'})
         self.sandbox = sandbox
@@ -879,7 +887,7 @@ class OGame(object):
     def get_datetime_from_time(self, hour, minute, second):
         attack_time = arrow.utcnow().to(self.server_tz).replace(hour=hour, minute=minute, second=second)
         now = arrow.utcnow().to(self.server_tz)
-        if now.hour > attack_time.hour:
+        if now > attack_time:
             attack_time += datetime.timedelta(days=1)
         return attack_time.to(tz.tzlocal()).datetime
 
