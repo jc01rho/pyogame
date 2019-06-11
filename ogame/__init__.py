@@ -186,7 +186,7 @@ class OGame(object):
                    'credentials[password]': self.password}
 
         time.sleep(random.uniform(1, 2))
-        res = self.session.post('https://lobby-api.ogame.gameforge.com/users', data=payload)
+        res = self.session.post('https://lobby.ogame.gameforge.com/api/users', data=payload)
 
         php_session_id = None
         for c in res.cookies:
@@ -195,7 +195,7 @@ class OGame(object):
                 break
         cookie = {'PHPSESSID': php_session_id}
 
-        res = self.session.get('https://lobby-api.ogame.gameforge.com/servers').json()
+        res = self.session.get('https://lobby.ogame.gameforge.com/api/servers').json()
         server_num = None
         for server in res:
             name = server['name'].lower()
@@ -203,7 +203,7 @@ class OGame(object):
                 server_num = server['number']
                 break
 
-        res = self.session.get('https://lobby-api.ogame.gameforge.com/users/me/accounts', cookies=cookie)
+        res = self.session.get('https://lobby.ogame.gameforge.com/api/users/me/accounts', cookies=cookie)
         selected_server_id = None
         lang = None
         server_accounts = res.json()
@@ -215,7 +215,7 @@ class OGame(object):
 
         time.sleep(random.uniform(1, 2))
         res = self.session.get(
-            'https://lobby-api.ogame.gameforge.com/users/me/loginLink?id={}&server[language]={}&server[number]={}'
+            'https://lobby.ogame.gameforge.com/api/users/me/loginLink?id={}&server[language]={}&server[number]={}'
             .format(selected_server_id, lang, str(server_num)), cookies=cookie).json()
         selected_server_url = res['url']
         b = re.search('https://(.+\.ogame\.gameforge\.com)/game', selected_server_url)
@@ -908,7 +908,7 @@ class OGame(object):
             return url
 
     def get_servers(self, domain):
-        res = self.session.get('https://lobby-api.ogame.gameforge.com/servers').json()
+        res = self.session.get('https://lobby.ogame.gameforge.com/api/servers').json()
         servers = {}
         for server in res:
             name = server['name'].lower()
