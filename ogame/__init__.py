@@ -136,7 +136,7 @@ class OGame(object):
                  domain='en.ogame.gameforge.com',
                  auto_bootstrap=True,
                  sandbox=False, sandbox_obj=None, use_proxy=False, proxy_port=9050):
-        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
         self.session = requests.session()
         self.session.verify = False
         self.session.headers.update({
