@@ -154,11 +154,12 @@ class OGame(object):
         self.fleet_speed = 1
         self.server_url = ''
         self.server_tz = self.getServerTimezone()
-        self.universe_max_galaxies = int(self.getServerMaxGalaxies())
+        self.universe_max_galaxies = 9
         if auto_bootstrap:
             self.login()
             self.universe_speed = int(self.get_universe_speed())
             self.fleet_speed = int(self.get_fleet_speed())
+            self.universe_max_galaxies = int(self.getServerMaxGalaxies())
         if use_proxy:
             self.session.proxies.update(get_proxies(proxy_port))
 
