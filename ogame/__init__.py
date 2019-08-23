@@ -151,13 +151,25 @@ class OGame(object):
         self.username = username
         self.password = password
         self.universe_speed = 1
+        self.fleet_speed = 1
         self.server_url = ''
         self.server_tz = self.getServerTimezone()
+        self.universe_max_galaxies = self.getServerMaxGalaxies();
         if auto_bootstrap:
             self.login()
             self.universe_speed = self.get_universe_speed()
+            self.fleet_speed = self.get_fleet_speed()
         if use_proxy:
             self.session.proxies.update(get_proxies(proxy_port))
+
+
+
+    def getServerMaxGalaxies(self):
+        # https://s800-en.ogame.gameforge.com/api/serverData.xml
+        # requests.get(url, proxies=get_proxies())
+        #https://s152-en.ogame.gameforge.com/api/serverData.xml
+        tree = minidom.parseString(requests.get("https://" + self.universe_url + "/api/serverData.xml").content)
+        return tree.getElementsByTagName("galaxies")[0].firstChild.nodeValue
 
     def getServerTimezone(self):
         # https://s800-en.ogame.gameforge.com/api/serverData.xml
@@ -279,17 +291,12 @@ class OGame(object):
         return result
 
     def get_universe_speed(self, res=None):
-        if not res:
-            res = self.session.get(self.get_url('techtree', {'tab': 2, 'techID': 1})).content
-        soup = BeautifulSoup(res, 'html.parser')
-        if soup.find('head'):
-            raise NOT_LOGGED
-        spans = soup.findAll('span', {'class': 'undermark'})
-        level = parse_int(spans[0].text)
-        val = parse_int(spans[1].text)
-        metal_production = metal_mine_production(level, 1)
-        universe_speed = val / metal_production
-        return universe_speed
+        tree = minidom.parseString(requests.get("https://" + self.universe_url + "/api/serverData.xml").content)
+        return tree.getElementsByTagName("speed")[0].firstChild.nodeValue
+
+    def get_fleet_speed(self, res=None):
+        tree = minidom.parseString(requests.get("https://" + self.universe_url + "/api/serverData.xml").content)
+        return tree.getElementsByTagName("speedFleet")[0].firstChild.nodeValue
 
     def get_user_infos(self, html=None):
         if not html:
