@@ -17,30 +17,24 @@ from ogame.errors import BAD_UNIVERSE_NAME, BAD_DEFENSE_ID, NOT_LOGGED, BAD_CRED
     BAD_SHIP_ID, BAD_RESEARCH_ID
 from bs4 import BeautifulSoup
 from dateutil import tz
-from ogame.util import get_random_user_agent
-import urllib3
+
+miniFleetToken = None
 
 
-def get_proxies(port=9050):
-    proxies = {
-        'http': 'socks5://127.0.0.1:{}'.format(port),
-        'https': 'socks5://127.0.0.1:{}'.format(port)
-    }
-
-    return proxies
+def update_cookies(session_dict):
+    pickle.dump(session_dict, open("save.txt", "wb"))
 
 
-def get_ip():
-    url = 'http://ifconfig.me/ip'
-    response = requests.get(url, proxies=get_proxies())
-    return 'tor ip: {}'.format(response.text.strip())
+def set_mini_fleet_token(token):
+    global miniFleetToken  # Needed to modify global copy of globvar
+    miniFleetToken = token
 
 
 def parse_int(text):
     try:
         return int(text.replace('.', '').replace(',', '').strip())
     except ValueError:
-        return 0
+        return 1
 
 
 def for_all_methods(decorator):
@@ -214,9 +208,8 @@ class OGame(object):
                 break
 
         time.sleep(random.uniform(1, 2))
-        res = self.session.get(
-            'https://lobby.ogame.gameforge.com/api/users/me/loginLink?id={}&server[language]={}&server[number]={}'
-            .format(selected_server_id, lang, str(server_num)), cookies=cookie).json()
+        res = self.session.get('https://lobby.ogame.gameforge.com/api/users/me/loginLink?id={}&server[language]={}&server[number]={}'
+                .format(selected_server_id, lang, str(server_num)), cookies=cookie).json()
         selected_server_url = res['url']
         b = re.search('https://(.+\.ogame\.gameforge\.com)/game', selected_server_url)
         self.server_url = b.group(1)
@@ -226,12 +219,14 @@ class OGame(object):
         session_found = soup.find('meta', {'name': 'ogame-session'})
         if session_found:
             self.ogame_session = session_found.get('content')
+            # Save the session to a file
+            session_dict = self.session.cookies
+            update_cookies(session_dict)
         else:
             raise BAD_CREDENTIALS
 
     def logout(self):
         self.session.get(self.get_url('logout'))
-        self.session.cookies.clear()
 
     def is_logged(self, html=None):
         if not html:
@@ -479,9 +474,7 @@ class OGame(object):
 
     def build_defense(self, planet_id, defense_id, nbr):
         """Build a defense unit."""
-        print("builddef")
         if defense_id not in constants.Defense.values():
-            print("baddef")
             raise BAD_DEFENSE_ID
 
         url = self.get_url('defense', {'cp': planet_id})
@@ -497,7 +490,6 @@ class OGame(object):
                    'modus': 1,
                    'token': token,
                    'type': defense_id}
-        print("def post")
         self.session.post(url, data=payload)
 
     def get_shipyard_queueSize(self, planet_id):
@@ -657,7 +649,11 @@ class OGame(object):
                         'system': where.get('system'),
                         'position': where.get('position'),
                         'type': where.get('type', 1)})
-
+        if mission == constants.Missions['RecycleDebrisField']:
+            # planet type: 1
+            # debris type: 2
+            # moon type: 3
+            payload.update({'type': 2})  # Send to debris field
         res = self.session.post(self.get_url('fleet3'), data=payload).content
 
         payload = {}
@@ -682,8 +678,7 @@ class OGame(object):
             if not reversal_span:
                 continue
             fleet_id = int(reversal_span.get('ref'))
-            if dest == '[{}:{}:{}]'.format(where['galaxy'], where['system'],
-                                           where['position']) and origin == '[{}]'.format(origin_coords):
+            if dest == '[{}:{}:{}]'.format(where['galaxy'], where['system'], where['position']) and origin == '[{}]'.format(origin_coords):
                 matches.append(fleet_id)
         if matches:
             return max(matches)
@@ -753,27 +748,28 @@ class OGame(object):
                     'solar_satellite': 0,
                 }
             }
-            for i in range(1, len(trs) - 5):
+            for i in range(1, len(trs)-5):
                 name = trs[i].findAll('td')[0].text.strip(' \r\t\n:')
                 short_name = ''.join(name.split())
                 code = get_code(short_name)
                 qty = parse_int(trs[i].findAll('td')[1].text.strip())
-                if code == 202: fleet['ships']['small_cargo'] = qty
-                if code == 203: fleet['ships']['large_cargo'] = qty
-                if code == 204: fleet['ships']['light_fighter'] = qty
-                if code == 205: fleet['ships']['heavy_fighter'] = qty
-                if code == 206: fleet['ships']['cruiser'] = qty
-                if code == 207: fleet['ships']['battleship'] = qty
-                if code == 208: fleet['ships']['colony_ship'] = qty
-                if code == 209: fleet['ships']['recycler'] = qty
+                if code == 202: fleet['ships']['small_cargo']     = qty
+                if code == 203: fleet['ships']['large_cargo']     = qty
+                if code == 204: fleet['ships']['light_fighter']   = qty
+                if code == 205: fleet['ships']['heavy_fighter']   = qty
+                if code == 206: fleet['ships']['cruiser']         = qty
+                if code == 207: fleet['ships']['battleship']      = qty
+                if code == 208: fleet['ships']['colony_ship']     = qty
+                if code == 209: fleet['ships']['recycler']        = qty
                 if code == 210: fleet['ships']['espionage_probe'] = qty
-                if code == 211: fleet['ships']['bomber'] = qty
+                if code == 211: fleet['ships']['bomber']          = qty
                 if code == 212: fleet['ships']['solar_satellite'] = qty
-                if code == 213: fleet['ships']['destroyer'] = qty
-                if code == 214: fleet['ships']['deathstar'] = qty
-                if code == 215: fleet['ships']['battlecruiser'] = qty
+                if code == 213: fleet['ships']['destroyer']       = qty
+                if code == 214: fleet['ships']['deathstar']       = qty
+                if code == 215: fleet['ships']['battlecruiser']   = qty
             fleets.append(fleet)
         return fleets
+
 
     def get_fleet_ids(self):
         """Return the reversable fleet ids."""
@@ -797,8 +793,6 @@ class OGame(object):
         events = soup.findAll('tr', {'class': 'allianceAttack'})
         events += eventsDup
         # unsupported operand type(s) for +=: 'filter' and 'ResultSet'
-
-
         attacks = []
         for event in events:
             mission_type = int(event['data-mission-type'])
@@ -887,7 +881,7 @@ class OGame(object):
     def get_datetime_from_time(self, hour, minute, second):
         attack_time = arrow.utcnow().to(self.server_tz).replace(hour=hour, minute=minute, second=second)
         now = arrow.utcnow().to(self.server_tz)
-        if now > attack_time:
+        if now.hour > attack_time.hour:
             attack_time += datetime.timedelta(days=1)
         return attack_time.to(tz.tzlocal()).datetime
 
@@ -919,7 +913,12 @@ class OGame(object):
         return servers
 
     def get_universe_url(self, universe):
-        return self.universe_url
+        """Get a universe name and return the server url."""
+        servers = self.get_servers(self.domain)
+        universe = universe.lower()
+        if universe not in servers:
+            raise BAD_UNIVERSE_NAME
+        return servers[universe]
 
     def get_server_time(self):
         """Get the ogame server time."""
@@ -939,7 +938,7 @@ class OGame(object):
             raise NOT_LOGGED
         soup = BeautifulSoup(res, 'html.parser')
         link = soup.find('div', {'id': 'planet-{}'.format(planet_id)})
-        if link is not None:  # is a planet pid
+        if  link is not None: #is a planet pid
             link = link.find('a')
         else:  # is a moon pid
             link = soup.find('div', {'id': 'planetList'})
@@ -951,6 +950,7 @@ class OGame(object):
                     break
                 else:
                     continue
+
 
         infos_label = BeautifulSoup(link['title'], 'html.parser').text
         infos = get_planet_infos_regex(infos_label)
@@ -992,6 +992,7 @@ class OGame(object):
 
     def get_overview(self, planet_id):
         html = self.session.get(self.get_url('overview', {'cp': planet_id})).content
+        update_cookies(self.session.cookies)
         if not self.is_logged(html):
             raise NOT_LOGGED
         soup = BeautifulSoup(html, 'html.parser')
@@ -1086,6 +1087,36 @@ class OGame(object):
         url = self.get_url('messages')
         res = self.session.post(url, data=payload, headers=headers).content.decode('utf8')
 
+        return res
+        
+    def send_spy(self, galaxy, system, position, ship_count):
+        headers = {'X-Requested-With': 'XMLHttpRequest'}
+        payload = {'mission': 6,
+                   'type': 1,
+                   'token': '',
+                   'galaxy': galaxy,
+                   'system': system,
+                   'position': position,
+                   'shipCount': ship_count,
+                   'speed': 10}
+
+        token = ''
+        if miniFleetToken is None or miniFleetToken == '':
+            first_res = self.session.get(self.get_url('overview')).content
+            moon_soup = BeautifulSoup(first_res, 'html.parser')
+            data = moon_soup.find_all('script', {'type': 'text/javascript'})
+            parameter = 'miniFleetToken'
+            for d in data:
+                d = d.text
+                if 'var miniFleetToken=' in d:
+                    regex_string = 'var {parameter}="(.*?)"'.format(parameter=parameter)
+                    token = re.findall(regex_string, d)
+        else:
+            token = miniFleetToken
+
+        url = self.get_url('minifleet', {'ajax': 1})
+        payload['token'] = token
+        res = self.session.post(url, data=payload, headers=headers).content.decode('utf8')
         return res
 
     def get_flying_fleets(self):
@@ -1296,10 +1327,12 @@ class OGame(object):
         """ Retourne le cout d'un batiment lvl + 1 """
         production = 0
         production = (self.universe_speed * constants.Formules[type][batiment]['production'][0] * lvl *
-                      (constants.Formules[type][batiment]['production'][1] ** lvl)) + \
+                      (constants.Formules[type][batiment]['production'][1] ** lvl) ) + \
                      self.universe_speed * constants.Formules[type][batiment]['production'][0]
 
+
         return production
+
 
     def storageSize(self, type, batiment, lvl):
         capacity = -1
